@@ -1,6 +1,7 @@
 import cv2
 import time
 import os
+import requests
 from ultralytics import YOLO
 
 # ─────────────────────────────────────────────
@@ -13,6 +14,9 @@ CAMERA_URL = "http://10.10.20.226:8080/video"   # <-- Change to your IPWebcam UR
 
 MODEL_PATH  = "yolo26n.pt"
 CONFIDENCE  = 0.4
+
+# ESP32 WiFi Configuration
+ESP32_IP = "192.168.1.XXX"  # <--- Change to the IP shown in Thonny
 
 # Set SHOW_DISPLAY = True only if a monitor is connected to the Pi.
 # If running headless (SSH / no screen), keep it False.
@@ -43,6 +47,16 @@ def open_camera(url, retries=5, delay=3):
     print("  2. IP address and port are correct")
     print("  3. Pi and device are on the same Wi-Fi network")
     return None
+
+
+def send_esp32_signal(on):
+    url = f"http://{ESP32_IP}/on" if on else f"http://{ESP32_IP}/off"
+    try:
+        # Timeout set to 0.5s to avoid blocking detection for too long
+        requests.get(url, timeout=0.5)
+        print(f"[EcoEYE] Signal sent to ESP32: {'ON' if on else 'OFF'}")
+    except Exception as e:
+        print(f"[EcoEYE] WiFi Signal failed: {e}")
 
 
 def main():
@@ -95,11 +109,22 @@ def main():
                         if zx1 < cx < zx2 and zy1 < cy < zy2:
                             zone["occupied"] = True
 
-            # ── Terminal Output (always) ─────────────────────
+            # ── Terminal Output & Signaling ──────────────────
             print(f"\n--- EcoEYE [{time.strftime('%H:%M:%S')}] ---")
+            any_occupied = False
             for zone in zones:
                 status = "💡 LIGHTS ON " if zone["occupied"] else "🌑 LIGHTS OFF"
                 print(f"  {zone['name']}: {status}")
+                if zone["occupied"]:
+                    any_occupied = True
+
+            # Send signal only if occupancy state changed
+            if not hasattr(main, "last_state"):
+                main.last_state = None
+
+            if any_occupied != main.last_state:
+                send_esp32_signal(any_occupied)
+                main.last_state = any_occupied
 
             # ── Optional Display (only if monitor connected) ─
             if SHOW_DISPLAY:
