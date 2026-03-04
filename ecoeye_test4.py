@@ -4,26 +4,28 @@ from ultralytics import YOLO
 # 1. Load the YOLO26n model
 model = YOLO("yolo26n.pt") 
 
-# 2. IPWebcam Configuration
-CAMERA_URL = "http://10.10.20.226:8080/video"  # Change this to your IPWebcam URL
-# Alternative URLs for IPWebcam:
-# CAMERA_URL = "http://10.10.20.226:8080/mjpegfeed"
-# CAMERA_URL = "http://10.10.20.226:8080/videofeed"
+# 2. Local video file configuration
+VIDEO_PATH = "video.mp4"
+WINDOW_NAME = "EcoEYE 2-Zone Occupancy"
 
-# 3. Open camera stream from URL
-cap = cv2.VideoCapture(CAMERA_URL)
+# 3. Open video stream from local file
+cap = cv2.VideoCapture(VIDEO_PATH)
 
 # Set buffer size to reduce latency
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-# Check if the camera opened successfully
+# Check if the video opened successfully
 if not cap.isOpened():
-    print(f"Error: Could not connect to camera at {CAMERA_URL}")
-    print("Please check:")
-    print("1. IPWebcam app is running on your device")
-    print("2. The IP address and port are correct")
-    print("3. Your device and computer are on the same network")
+    print(f"Error: Could not open video file: {VIDEO_PATH}")
+    print("Please check that video.mp4 exists in the same folder as this script.")
     exit()
+
+
+def on_divider_change(value):
+    pass
+
+
+trackbar_initialized = False
 
 while cap.isOpened():
     success, frame = cap.read()
@@ -31,14 +33,18 @@ while cap.isOpened():
         break
 
     h, w, _ = frame.shape
-    mid_x, mid_y = w // 2, h // 2
+    if not trackbar_initialized:
+        cv2.namedWindow(WINDOW_NAME)
+        cv2.createTrackbar("Divider X", WINDOW_NAME, w // 2, w - 1, on_divider_change)
+        trackbar_initialized = True
 
-    # 3. Define 4 Zones: [name, (x1, y1, x2, y2), color]
+    divider_x = cv2.getTrackbarPos("Divider X", WINDOW_NAME)
+    divider_x = max(1, min(w - 1, divider_x))
+
+    # 3. Define 2 Zones split by one vertical line
     zones = [
-        {"name": "Zone A (Top-L)", "area": (0, 0, mid_x, mid_y), "color": (255, 0, 0), "occupied": False},
-        {"name": "Zone B (Top-R)", "area": (mid_x, 0, w, mid_y), "color": (0, 255, 0), "occupied": False},
-        {"name": "Zone C (Bot-L)", "area": (0, mid_y, mid_x, h), "color": (0, 0, 255), "occupied": False},
-        {"name": "Zone D (Bot-R)", "area": (mid_x, mid_y, w, h), "color": (0, 255, 255), "occupied": False},
+        {"name": "Zone Left", "area": (0, 0, divider_x, h), "color": (255, 0, 0), "occupied": False},
+        {"name": "Zone Right", "area": (divider_x, 0, w, h), "color": (0, 255, 0), "occupied": False},
     ]
 
     # 4. Run YOLO26n detection (Person class only)
@@ -56,7 +62,9 @@ while cap.isOpened():
                 if zx1 < cx < zx2 and zy1 < cy < zy2:
                     zone["occupied"] = True
 
-    # 5. Draw Zones and Display Light Status
+    # 5. Draw one vertical divider and display zone status
+    cv2.line(frame, (divider_x, 0), (divider_x, h), (255, 255, 255), 2)
+
     for zone in zones:
         zx1, zy1, zx2, zy2 = zone["area"]
         status = "LIGHTS: ON" if zone["occupied"] else "LIGHTS: OFF"
@@ -71,9 +79,16 @@ while cap.isOpened():
         cv2.putText(frame, status, (zx1 + 10, zy1 + 60), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, text_color, 2)
 
-    cv2.imshow("EcoEYE Multi-Zone Occupancy", frame)
+    cv2.imshow(WINDOW_NAME, frame)
 
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+    key = cv2.waitKey(1) & 0xFF
+    if key in (ord("a"), 81):  # 'a' or left-arrow
+        divider_x = max(1, divider_x - 5)
+        cv2.setTrackbarPos("Divider X", WINDOW_NAME, divider_x)
+    elif key in (ord("d"), 83):  # 'd' or right-arrow
+        divider_x = min(w - 1, divider_x + 5)
+        cv2.setTrackbarPos("Divider X", WINDOW_NAME, divider_x)
+    elif key == ord("q"):
         break
 
 cap.release()
