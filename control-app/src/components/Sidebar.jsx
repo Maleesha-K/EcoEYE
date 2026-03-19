@@ -10,12 +10,14 @@ import {
     X,
     Brain,
     LogOut,
+    SlidersHorizontal,
 } from 'lucide-react'
 import { useState } from 'react'
 import './Sidebar.css'
 
 const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/setup', label: 'Initial Setup', icon: SlidersHorizontal },
     { path: '/zones', label: 'Zones', icon: Grid3X3 },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/predictions', label: 'AI Predictions', icon: Brain },

@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar'
 import ChatAssistant from './components/ChatAssistant'
 import Dashboard from './pages/Dashboard'
 import Zones from './pages/Zones'
+import InitialSetup from './pages/InitialSetup'
 import Analytics from './pages/Analytics'
 import AIPredictions from './pages/AIPredictions'
 import Settings from './pages/Settings'
@@ -67,6 +68,7 @@ function App() {
         <AnimatePresence mode="wait">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/setup" element={<InitialSetup token={token} />} />
             <Route path="/zones" element={<Zones />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/predictions" element={<AIPredictions />} />
