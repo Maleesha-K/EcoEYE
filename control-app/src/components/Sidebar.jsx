@@ -24,9 +24,10 @@ const navItems = [
     { path: '/settings', label: 'Settings', icon: Settings },
 ]
 
-export default function Sidebar({ username, onLogout }) {
+export default function Sidebar({ username, onLogout, setupLocked }) {
     const [mobileOpen, setMobileOpen] = useState(false)
     const location = useLocation()
+    const visibleNavItems = setupLocked ? navItems.filter((item) => item.path === '/setup') : navItems
 
     return (
         <>
@@ -59,7 +60,7 @@ export default function Sidebar({ username, onLogout }) {
                 {/* Navigation */}
                 <nav className="sidebar-nav">
                     <div className="nav-label">NAVIGATION</div>
-                    {navItems.map((item) => {
+                    {visibleNavItems.map((item) => {
                         const Icon = item.icon
                         const isActive = location.pathname === item.path
                         return (

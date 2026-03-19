@@ -67,7 +67,7 @@ function newMapping(cameraId, deviceId, zone = 'left') {
   }
 }
 
-export default function InitialSetup({ token }) {
+export default function InitialSetup({ token, onSetupCompleted }) {
   const [setup, setSetup] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -223,6 +223,9 @@ export default function InitialSetup({ token }) {
       }
 
       setSetup(data.setup)
+      if (data.setupCompleted && onSetupCompleted) {
+        onSetupCompleted()
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 1800)
     } catch (err) {
@@ -465,6 +468,118 @@ export default function InitialSetup({ token }) {
               </button>
             </div>
           ))}
+        </div>
+      </motion.section>
+
+      <motion.section className="setup-section glass-card" variants={itemVariants}>
+        <div className="setup-section-title">
+          <Cpu size={15} />
+          Control Runtime Policy
+        </div>
+
+        <div className="setup-grid setup-grid--4">
+          <label className="setting-field">
+            <span>Hold Time (seconds)</span>
+            <input
+              type="number"
+              min="5"
+              max="300"
+              value={setup.control?.holdSeconds ?? 30}
+              onChange={(e) => updateSetupField('control', { ...setup.control, holdSeconds: Number(e.target.value) })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>MQTT Broker Host</span>
+            <input
+              value={setup.control?.mqtt?.host ?? ''}
+              onChange={(e) => updateSetupField('control', { ...setup.control, mqtt: { ...setup.control?.mqtt, host: e.target.value } })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>MQTT Port</span>
+            <input
+              type="number"
+              min="1"
+              max="65535"
+              value={setup.control?.mqtt?.port ?? 1883}
+              onChange={(e) => updateSetupField('control', { ...setup.control, mqtt: { ...setup.control?.mqtt, port: Number(e.target.value) } })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>MQTT QoS</span>
+            <select
+              value={setup.control?.mqtt?.qos ?? 1}
+              onChange={(e) => updateSetupField('control', { ...setup.control, mqtt: { ...setup.control?.mqtt, qos: Number(e.target.value) } })}
+            >
+              <option value={0}>0</option>
+              <option value={1}>1</option>
+              <option value={2}>2</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="setup-grid setup-grid--3">
+          <label className="setting-field">
+            <span>Retry Attempts</span>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={setup.control?.retry?.attempts ?? 3}
+              onChange={(e) => updateSetupField('control', { ...setup.control, retry: { ...setup.control?.retry, attempts: Number(e.target.value) } })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>Retry Backoff (ms)</span>
+            <input
+              type="number"
+              min="100"
+              max="5000"
+              value={setup.control?.retry?.backoffMs ?? 500}
+              onChange={(e) => updateSetupField('control', { ...setup.control, retry: { ...setup.control?.retry, backoffMs: Number(e.target.value) } })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>Camera Fail Policy</span>
+            <select
+              value={setup.control?.cameraFailPolicy ?? 'fail-safe-off'}
+              onChange={(e) => updateSetupField('control', { ...setup.control, cameraFailPolicy: e.target.value })}
+            >
+              <option value="fail-safe-off">Fail-safe OFF</option>
+              <option value="keep-last">Keep last state</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="setup-grid setup-grid--4">
+          <label className="setting-field">
+            <span>AC Mode</span>
+            <input
+              value={setup.control?.acDefaults?.mode ?? 'cool'}
+              onChange={(e) => updateSetupField('control', { ...setup.control, acDefaults: { ...setup.control?.acDefaults, mode: e.target.value } })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>AC Temperature</span>
+            <input
+              type="number"
+              min="16"
+              max="30"
+              value={setup.control?.acDefaults?.temp ?? 24}
+              onChange={(e) => updateSetupField('control', { ...setup.control, acDefaults: { ...setup.control?.acDefaults, temp: Number(e.target.value) } })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>AC Fan</span>
+            <input
+              value={setup.control?.acDefaults?.fan ?? 'auto'}
+              onChange={(e) => updateSetupField('control', { ...setup.control, acDefaults: { ...setup.control?.acDefaults, fan: e.target.value } })}
+            />
+          </label>
+          <label className="setting-field">
+            <span>Topic Model</span>
+            <input value={setup.control?.topicModel ?? 'per-device'} readOnly />
+          </label>
         </div>
       </motion.section>
     </motion.div>

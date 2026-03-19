@@ -4,12 +4,15 @@ import hmac
 import json
 import os
 import secrets
+import threading
 import time
 from functools import wraps
 from pathlib import Path
 
+import requests
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from paho.mqtt import client as mqtt_client
 
 app = Flask(__name__)
 CORS(app)
@@ -21,10 +24,9 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 AUTH_FILE = DATA_DIR / "auth.json"
 SETUP_FILE = DATA_DIR / "setup.json"
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "3.0.0"
 TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
 TOKEN_SECRET = os.getenv("APP_SECRET", "change-this-secret-on-first-boot")
-
 STARTED_AT = time.time()
 
 DEFAULT_SETTINGS = {
@@ -47,7 +49,7 @@ DEFAULT_SETTINGS = {
 }
 
 DEFAULT_SETUP = {
-    "version": 1,
+    "version": 2,
     "autoTurnOffWhenEmpty": True,
     "occupancyDecisionIntervalSec": 1.0,
     "cameras": [
@@ -66,9 +68,9 @@ DEFAULT_SETUP = {
             "name": "Lounge Lights",
             "kind": "light",
             "protocol": "mqtt",
-            "target": "esp32/lounge",
-            "onCommand": "ON",
-            "offCommand": "OFF",
+            "target": "esp32/lounge/cmd",
+            "onCommand": "{\"power\":\"on\"}",
+            "offCommand": "{\"power\":\"off\"}",
             "meta": {},
         }
     ],
@@ -82,7 +84,40 @@ DEFAULT_SETUP = {
             "mode": "occupancy",
         }
     ],
+    "control": {
+        "setupCompleted": False,
+        "topicModel": "per-device",
+        "holdSeconds": 30,
+        "cameraFailPolicy": "fail-safe-off",
+        "mqtt": {
+            "host": "192.168.1.1",
+            "port": 1883,
+            "qos": 1,
+            "retain": False,
+            "clientId": "ecoeye-controller",
+        },
+        "retry": {
+            "attempts": 3,
+            "backoffMs": 500,
+        },
+        "acDefaults": {
+            "power": "on",
+            "mode": "cool",
+            "temp": 24,
+            "fan": "auto",
+        },
+    },
 }
+
+RUNTIME_STATE = {
+    "zoneState": {},
+    "deviceState": {},
+    "dispatchLog": [],
+    "mqttConnected": False,
+    "mqttConfig": None,
+}
+RUNTIME_LOCK = threading.Lock()
+MQTT_CLIENT = None
 
 
 def ensure_data_files():
@@ -134,24 +169,48 @@ def save_settings(settings_doc):
     SETTINGS_FILE.write_text(json.dumps(settings_doc, indent=2), encoding="utf-8")
 
 
+def merge_control(existing_control):
+    merged = json.loads(json.dumps(DEFAULT_SETUP["control"]))
+    if isinstance(existing_control, dict):
+        for k in ["setupCompleted", "topicModel", "holdSeconds", "cameraFailPolicy"]:
+            if k in existing_control:
+                merged[k] = existing_control[k]
+        if isinstance(existing_control.get("mqtt"), dict):
+            merged["mqtt"].update(existing_control["mqtt"])
+        if isinstance(existing_control.get("retry"), dict):
+            merged["retry"].update(existing_control["retry"])
+        if isinstance(existing_control.get("acDefaults"), dict):
+            merged["acDefaults"].update(existing_control["acDefaults"])
+    return merged
+
+
 def load_setup():
     ensure_data_files()
     existing = json.loads(SETUP_FILE.read_text(encoding="utf-8"))
     merged = dict(DEFAULT_SETUP)
     merged.update(existing)
 
-    if not isinstance(merged.get("cameras"), list):
-        merged["cameras"] = list(DEFAULT_SETUP["cameras"])
-    if not isinstance(merged.get("devices"), list):
-        merged["devices"] = list(DEFAULT_SETUP["devices"])
-    if not isinstance(merged.get("zoneMappings"), list):
-        merged["zoneMappings"] = list(DEFAULT_SETUP["zoneMappings"])
+    merged["cameras"] = existing.get("cameras") if isinstance(existing.get("cameras"), list) else list(DEFAULT_SETUP["cameras"])
+    merged["devices"] = existing.get("devices") if isinstance(existing.get("devices"), list) else list(DEFAULT_SETUP["devices"])
+    merged["zoneMappings"] = existing.get("zoneMappings") if isinstance(existing.get("zoneMappings"), list) else list(DEFAULT_SETUP["zoneMappings"])
+    merged["control"] = merge_control(existing.get("control"))
 
     return merged
 
 
 def save_setup(setup_doc):
     SETUP_FILE.write_text(json.dumps(setup_doc, indent=2), encoding="utf-8")
+
+
+def is_setup_complete(setup_doc):
+    return (
+        isinstance(setup_doc.get("cameras"), list)
+        and len(setup_doc["cameras"]) >= 1
+        and isinstance(setup_doc.get("devices"), list)
+        and len(setup_doc["devices"]) >= 1
+        and isinstance(setup_doc.get("zoneMappings"), list)
+        and len(setup_doc["zoneMappings"]) >= 1
+    )
 
 
 def validate_setup(payload):
@@ -201,7 +260,7 @@ def validate_setup(payload):
         if mapping["deviceId"] not in device_ids:
             return f"Mapping references unknown deviceId: {mapping['deviceId']}"
         if mapping["zone"] not in valid_zones:
-            return f"Mapping zone must be 'left' or 'right'"
+            return "Mapping zone must be 'left' or 'right'"
 
     return None
 
@@ -272,7 +331,7 @@ def chatbot_reply(message: str):
             "intent": intent,
             "reply": (
                 f"EcoEYE is online. Uptime is {uptime_seconds} seconds. "
-                "Health checks are passing and LAN access is enabled."
+                f"Setup complete is {is_setup_complete(setup)}."
             ),
         }
 
@@ -286,14 +345,14 @@ def chatbot_reply(message: str):
                 f"camera {settings['cameraProtocol']}://{settings['cameraIp']}:{settings['cameraPort']}, "
                 f"MQTT {settings['mqttBroker']}:{settings['mqttPort']}, "
                 f"inference rate {settings['inferenceRate']} fps. "
-                f"Initial setup has {camera_count} camera(s) and {mapping_count} zone mapping(s)."
+                f"Initial setup has {camera_count} camera(s) and {mapping_count} mapping(s)."
             ),
         }
 
     if intent == "zones":
         return {
             "intent": intent,
-            "reply": "Two zones are configured: Lounge and Workstations. Use the Zones screen for occupancy insights.",
+            "reply": "This build uses left/right zones per camera based on bottom-center person point and adjustable divider.",
         }
 
     if intent == "restart":
@@ -304,20 +363,220 @@ def chatbot_reply(message: str):
 
     return {
         "intent": "help",
-        "reply": (
-            "I can help with local operations: system status, zone summary, and settings guidance. "
-            "Try: 'show status', 'camera settings', or 'how to restart service'."
-        ),
+        "reply": "I can help with setup, status, and zone control. Try 'show status' or 'show setup'.",
     }
+
+
+def add_dispatch_log(entry):
+    with RUNTIME_LOCK:
+        RUNTIME_STATE["dispatchLog"].append(entry)
+        if len(RUNTIME_STATE["dispatchLog"]) > 200:
+            RUNTIME_STATE["dispatchLog"] = RUNTIME_STATE["dispatchLog"][-200:]
+
+
+def mqtt_on_connect(client, userdata, flags, reason_code, properties=None):
+    with RUNTIME_LOCK:
+        RUNTIME_STATE["mqttConnected"] = reason_code == 0
+
+
+def mqtt_on_disconnect(client, userdata, disconnect_flags, reason_code, properties=None):
+    with RUNTIME_LOCK:
+        RUNTIME_STATE["mqttConnected"] = False
+
+
+def ensure_mqtt_connected(control):
+    global MQTT_CLIENT
+
+    mqtt_cfg = control.get("mqtt", {})
+    host = str(mqtt_cfg.get("host", "192.168.1.1"))
+    port = int(mqtt_cfg.get("port", 1883))
+    client_id = str(mqtt_cfg.get("clientId", "ecoeye-controller"))
+    config_snapshot = {"host": host, "port": port, "clientId": client_id}
+
+    with RUNTIME_LOCK:
+        reuse = MQTT_CLIENT is not None and RUNTIME_STATE.get("mqttConfig") == config_snapshot
+
+    if reuse:
+        with RUNTIME_LOCK:
+            return bool(RUNTIME_STATE.get("mqttConnected"))
+
+    client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id=client_id)
+    client.on_connect = mqtt_on_connect
+    client.on_disconnect = mqtt_on_disconnect
+
+    try:
+        client.connect(host, port, keepalive=20)
+        client.loop_start()
+        time.sleep(0.2)
+        with RUNTIME_LOCK:
+            MQTT_CLIENT = client
+            RUNTIME_STATE["mqttConfig"] = config_snapshot
+            connected = bool(RUNTIME_STATE.get("mqttConnected"))
+        return connected
+    except Exception:
+        with RUNTIME_LOCK:
+            RUNTIME_STATE["mqttConnected"] = False
+        return False
+
+
+def parse_payload(raw_value, fallback=None):
+    if isinstance(raw_value, dict):
+        return raw_value
+    if isinstance(raw_value, str):
+        stripped = raw_value.strip()
+        if stripped.startswith("{") and stripped.endswith("}"):
+            try:
+                return json.loads(stripped)
+            except Exception:
+                pass
+    if fallback is not None:
+        return fallback
+    return {"command": str(raw_value)}
+
+
+def build_device_payload(device, turn_on, setup_doc):
+    control = setup_doc.get("control", {})
+    ac_defaults = control.get("acDefaults", {})
+
+    if turn_on:
+        base_raw = device.get("onCommand", "ON")
+        if device.get("kind") == "ac-ir" and isinstance(base_raw, str) and base_raw.strip().upper() == "ON":
+            return {
+                "power": "on",
+                "mode": ac_defaults.get("mode", "cool"),
+                "temp": ac_defaults.get("temp", 24),
+                "fan": ac_defaults.get("fan", "auto"),
+            }
+        return parse_payload(base_raw, fallback={"power": "on"})
+
+    base_raw = device.get("offCommand", "OFF")
+    return parse_payload(base_raw, fallback={"power": "off"})
+
+
+def dispatch_to_device(device, payload, setup_doc):
+    control = setup_doc.get("control", {})
+    retry_cfg = control.get("retry", {})
+    attempts = max(1, int(retry_cfg.get("attempts", 3)))
+    backoff_ms = max(100, int(retry_cfg.get("backoffMs", 500)))
+
+    protocol = str(device.get("protocol", "mqtt"))
+    target = str(device.get("target", "")).strip()
+
+    if not target:
+        return {"ok": False, "error": "device target is empty"}
+
+    for idx in range(attempts):
+        try:
+            if protocol == "mqtt":
+                if not ensure_mqtt_connected(control):
+                    raise RuntimeError("mqtt broker not connected")
+                qos = int(control.get("mqtt", {}).get("qos", 1))
+                retain = bool(control.get("mqtt", {}).get("retain", False))
+                body = json.dumps(payload)
+                result = MQTT_CLIENT.publish(target, body, qos=qos, retain=retain)
+                if result.rc != mqtt_client.MQTT_ERR_SUCCESS:
+                    raise RuntimeError(f"mqtt publish rc={result.rc}")
+            else:
+                response = requests.post(target, json=payload, timeout=2.5)
+                if response.status_code >= 400:
+                    raise RuntimeError(f"http status={response.status_code}")
+
+            return {"ok": True, "attempt": idx + 1}
+        except Exception as ex:
+            if idx + 1 >= attempts:
+                return {"ok": False, "attempt": idx + 1, "error": str(ex)}
+            time.sleep((backoff_ms / 1000.0) * (idx + 1))
+
+    return {"ok": False, "error": "unreachable"}
+
+
+def apply_zone_event_to_runtime(setup_doc, camera_id, zones, camera_online=True):
+    now = time.time()
+    hold_seconds = max(1, int(setup_doc.get("control", {}).get("holdSeconds", 30)))
+    auto_off = bool(setup_doc.get("autoTurnOffWhenEmpty", True))
+    camera_fail_policy = str(setup_doc.get("control", {}).get("cameraFailPolicy", "fail-safe-off"))
+
+    for zone in ["left", "right"]:
+        key = f"{camera_id}:{zone}"
+        input_occupied = bool(zones.get(zone, False)) if camera_online else False
+
+        with RUNTIME_LOCK:
+            item = RUNTIME_STATE["zoneState"].get(key, {"occupied": False, "lastSeen": 0.0, "updatedAt": now})
+
+        if input_occupied:
+            item["occupied"] = True
+            item["lastSeen"] = now
+        else:
+            stale = now - float(item.get("lastSeen", 0.0)) >= hold_seconds
+            if auto_off and stale:
+                item["occupied"] = False
+            if (not camera_online) and camera_fail_policy == "fail-safe-off" and stale:
+                item["occupied"] = False
+
+        item["updatedAt"] = now
+        with RUNTIME_LOCK:
+            RUNTIME_STATE["zoneState"][key] = item
+
+
+def evaluate_and_dispatch(setup_doc):
+    devices = setup_doc.get("devices", [])
+    mappings = setup_doc.get("zoneMappings", [])
+
+    actions = []
+
+    for dev in devices:
+        dev_id = dev.get("id")
+        relevant = [m for m in mappings if m.get("deviceId") == dev_id]
+
+        desired_on = False
+        for mapping in relevant:
+            zone_key = f"{mapping.get('cameraId')}:{mapping.get('zone')}"
+            with RUNTIME_LOCK:
+                zone_state = RUNTIME_STATE["zoneState"].get(zone_key, {"occupied": False})
+            if bool(zone_state.get("occupied", False)):
+                desired_on = True
+                break
+
+        with RUNTIME_LOCK:
+            current_on = bool(RUNTIME_STATE["deviceState"].get(dev_id, False))
+
+        if desired_on == current_on:
+            continue
+
+        payload = build_device_payload(dev, desired_on, setup_doc)
+        result = dispatch_to_device(dev, payload, setup_doc)
+
+        log_item = {
+            "timestamp": int(time.time()),
+            "deviceId": dev_id,
+            "desiredOn": desired_on,
+            "result": result,
+            "protocol": dev.get("protocol"),
+            "target": dev.get("target"),
+            "payload": payload,
+        }
+        add_dispatch_log(log_item)
+
+        if result.get("ok"):
+            with RUNTIME_LOCK:
+                RUNTIME_STATE["deviceState"][dev_id] = desired_on
+            actions.append({"deviceId": dev_id, "state": "ON" if desired_on else "OFF", "ok": True})
+        else:
+            actions.append({"deviceId": dev_id, "state": "ON" if desired_on else "OFF", "ok": False, "error": result.get("error")})
+
+    return actions
 
 
 @app.route("/health", methods=["GET"])
 def health_check():
-    return jsonify({"status": "healthy", "service": "EcoEYE Application"}), 200
+    with RUNTIME_LOCK:
+        mqtt_connected = bool(RUNTIME_STATE.get("mqttConnected", False))
+    return jsonify({"status": "healthy", "service": "EcoEYE Application", "mqttConnected": mqtt_connected}), 200
 
 
 @app.route("/api/status", methods=["GET"])
 def status():
+    setup_doc = load_setup()
     return jsonify(
         {
             "application": "EcoEYE",
@@ -325,6 +584,7 @@ def status():
             "status": "running",
             "description": "Offline occupancy management and control system",
             "uptimeSeconds": int(time.time() - STARTED_AT),
+            "setupCompleted": is_setup_complete(setup_doc),
         }
     ), 200
 
@@ -332,8 +592,8 @@ def status():
 @app.route("/api/zones", methods=["GET"])
 def get_zones():
     zones = [
-        {"id": 1, "name": "Lounge", "area": (0.0, 0.0, 0.5, 1.0), "color": (255, 0, 0)},
-        {"id": 2, "name": "Workstations", "area": (0.5, 0.0, 1.0, 1.0), "color": (0, 255, 0)},
+        {"id": 1, "name": "Left", "area": (0.0, 0.0, 0.5, 1.0), "color": (255, 0, 0)},
+        {"id": 2, "name": "Right", "area": (0.5, 0.0, 1.0, 1.0), "color": (0, 255, 0)},
     ]
     return jsonify({"zones": zones}), 200
 
@@ -352,6 +612,7 @@ def login():
     if not hmac.compare_digest(computed_hash, auth_doc["password_hash"]):
         return jsonify({"error": "Invalid username or password"}), 401
 
+    setup_doc = load_setup()
     token = create_token(username)
     return (
         jsonify(
@@ -360,6 +621,7 @@ def login():
                 "username": username,
                 "mustChangePassword": bool(auth_doc.get("mustChangePassword", False)),
                 "expiresInSeconds": TOKEN_TTL_SECONDS,
+                "setupCompleted": is_setup_complete(setup_doc),
             }
         ),
         200,
@@ -369,7 +631,8 @@ def login():
 @app.route("/api/auth/me", methods=["GET"])
 @require_auth
 def me():
-    return jsonify({"username": request.user}), 200
+    setup_doc = load_setup()
+    return jsonify({"username": request.user, "setupCompleted": is_setup_complete(setup_doc)}), 200
 
 
 @app.route("/api/auth/change-password", methods=["POST"])
@@ -435,6 +698,13 @@ def get_setup():
     return jsonify({"setup": load_setup()}), 200
 
 
+@app.route("/api/setup/status", methods=["GET"])
+@require_auth
+def get_setup_status():
+    setup_doc = load_setup()
+    return jsonify({"setupCompleted": is_setup_complete(setup_doc)}), 200
+
+
 @app.route("/api/setup", methods=["PUT"])
 @require_auth
 def put_setup():
@@ -451,17 +721,22 @@ def put_setup():
             normalized["meta"] = {}
         normalized_devices.append(normalized)
 
+    control = merge_control(setup_doc.get("control"))
+
     preserved = {
-        "version": int(setup_doc.get("version", 1)),
+        "version": int(setup_doc.get("version", 2)),
         "autoTurnOffWhenEmpty": bool(setup_doc.get("autoTurnOffWhenEmpty", True)),
         "occupancyDecisionIntervalSec": float(setup_doc.get("occupancyDecisionIntervalSec", 1.0)),
         "cameras": setup_doc["cameras"],
         "devices": normalized_devices,
         "zoneMappings": setup_doc["zoneMappings"],
+        "control": control,
     }
 
+    preserved["control"]["setupCompleted"] = is_setup_complete(preserved)
+
     save_setup(preserved)
-    return jsonify({"status": "saved", "setup": preserved}), 200
+    return jsonify({"status": "saved", "setup": preserved, "setupCompleted": preserved["control"]["setupCompleted"]}), 200
 
 
 @app.route("/api/setup/zone-from-basepoint", methods=["POST"])
@@ -489,6 +764,75 @@ def zone_from_basepoint():
     divider_x = float(camera.get("dividerRatio", 0.5)) * frame_width
     zone = "left" if base_point_x < divider_x else "right"
     return jsonify({"zone": zone, "dividerX": divider_x}), 200
+
+
+@app.route("/api/control/contract", methods=["GET"])
+@require_auth
+def control_contract():
+    return jsonify(
+        {
+            "protocol": "MQTT per-device topic (primary), HTTP POST (optional)",
+            "qos": 1,
+            "retry": "3 attempts with linear backoff",
+            "devicePayload": {
+                "power": "on|off",
+                "mode": "optional for AC",
+                "temp": "optional for AC",
+                "fan": "optional for AC",
+            },
+            "occupancyEventPayload": {
+                "cameraId": "cam-1",
+                "cameraOnline": True,
+                "zones": {"left": True, "right": False},
+            },
+            "rule": "Device ON if any mapped zone occupied; OFF after hold seconds",
+        }
+    ), 200
+
+
+@app.route("/api/control/occupancy-event", methods=["POST"])
+@require_auth
+def control_occupancy_event():
+    payload = request.get_json(silent=True) or {}
+    camera_id = str(payload.get("cameraId", "")).strip()
+    zones = payload.get("zones") or {}
+    camera_online = bool(payload.get("cameraOnline", True))
+
+    if not camera_id:
+        return jsonify({"error": "cameraId is required"}), 400
+    if not isinstance(zones, dict):
+        return jsonify({"error": "zones must be an object"}), 400
+
+    setup_doc = load_setup()
+    camera = next((cam for cam in setup_doc.get("cameras", []) if cam.get("id") == camera_id), None)
+    if not camera:
+        return jsonify({"error": "cameraId not found"}), 404
+
+    apply_zone_event_to_runtime(setup_doc, camera_id, zones, camera_online=camera_online)
+    actions = evaluate_and_dispatch(setup_doc)
+
+    with RUNTIME_LOCK:
+        runtime_snapshot = {
+            "zoneState": dict(RUNTIME_STATE["zoneState"]),
+            "deviceState": dict(RUNTIME_STATE["deviceState"]),
+            "mqttConnected": bool(RUNTIME_STATE["mqttConnected"]),
+        }
+
+    return jsonify({"status": "processed", "actions": actions, "runtime": runtime_snapshot}), 200
+
+
+@app.route("/api/control/runtime", methods=["GET"])
+@require_auth
+def control_runtime():
+    with RUNTIME_LOCK:
+        return jsonify(
+            {
+                "zoneState": RUNTIME_STATE["zoneState"],
+                "deviceState": RUNTIME_STATE["deviceState"],
+                "mqttConnected": RUNTIME_STATE["mqttConnected"],
+                "dispatchLog": RUNTIME_STATE["dispatchLog"][-30:],
+            }
+        ), 200
 
 
 @app.route("/")
