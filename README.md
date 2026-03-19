@@ -322,3 +322,19 @@ System:
 ---
 
 If you need, a separate ESP32 firmware contract document and sample Arduino sketch can be added next.
+
+## 13. Added Firmware Assets
+
+The following files are now included in this repository:
+
+1. ESP32 contract document:
+  - [docs/ESP32_FIRMWARE_CONTRACT.md](docs/ESP32_FIRMWARE_CONTRACT.md)
+2. Arduino firmware template:
+  - [firmware/esp32/ecoeye_esp32_template.ino](firmware/esp32/ecoeye_esp32_template.ino)
+
+Quick use:
+
+1. Open `firmware/esp32/ecoeye_esp32_template.ino` in Arduino IDE.
+2. Fill WiFi, MQTT, topic, and device IDs.
+3. Flash to ESP32.
+4. Verify device receives JSON commands from EcoEYE topic target.
