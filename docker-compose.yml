@@ -1,0 +1,38 @@
+services:
+  ecoeye-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecoeye-app
+    ports:
+      - "9000:5000"  # Backend API
+      - "3000:3000"  # Frontend dev server (if needed)
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+    volumes:
+      - ./ecoeye_test.py:/app/ecoeye_test.py
+      - ./ecoeye_test1.py:/app/ecoeye_test1.py
+      - ./ecoeye_test2.py:/app/ecoeye_test2.py
+      - ./ecoeye_test3.py:/app/ecoeye_test3.py
+      - ./ecoeye_test4.py:/app/ecoeye_test4.py
+      - ./yolo26n.pt:/app/yolo26n.pt
+    restart: unless-stopped
+    networks:
+      - ecoeye-network
+
+  # Optional: Frontend development server (commented out, use main app instead)
+  # frontend-dev:
+  #   build:
+  #     context: ./control-app
+  #     dockerfile: Dockerfile.dev
+  #   ports:
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./control-app/src:/app/src
+  #   networks:
+  #     - ecoeye-network
+
+networks:
+  ecoeye-network:
+    driver: bridge

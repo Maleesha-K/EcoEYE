@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+dist
+build
+.git
+.gitignore
+.vscode
+.DS_Store
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.env
+.env.local
+*.log
