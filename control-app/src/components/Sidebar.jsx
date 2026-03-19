@@ -9,6 +9,7 @@ import {
     Menu,
     X,
     Brain,
+    LogOut,
 } from 'lucide-react'
 import { useState } from 'react'
 import './Sidebar.css'
@@ -21,7 +22,7 @@ const navItems = [
     { path: '/settings', label: 'Settings', icon: Settings },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ username, onLogout }) {
     const [mobileOpen, setMobileOpen] = useState(false)
     const location = useLocation()
 
@@ -82,6 +83,10 @@ export default function Sidebar() {
 
                 {/* System Status */}
                 <div className="sidebar-footer">
+                    <div className="user-block">
+                        <div className="status-label">Signed in as</div>
+                        <div className="status-sub">{username || 'operator'}</div>
+                    </div>
                     <div className="system-status">
                         <div className="status-dot status-dot--online" />
                         <div>
@@ -89,6 +94,10 @@ export default function Sidebar() {
                             <div className="status-sub">Edge AI Active</div>
                         </div>
                     </div>
+                    <button className="logout-btn" onClick={onLogout}>
+                        <LogOut size={14} />
+                        Logout
+                    </button>
                 </div>
             </aside>
         </>

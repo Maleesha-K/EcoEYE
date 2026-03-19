@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
     Camera,
     Wifi,
@@ -8,6 +8,7 @@ import {
     Monitor,
     Save,
     RefreshCw,
+    KeyRound,
 } from 'lucide-react'
 import './Settings.css'
 
@@ -21,8 +22,12 @@ const itemVariants = {
     animate: { opacity: 1, y: 0 },
 }
 
-export default function Settings() {
+export default function Settings({ token }) {
     const [saved, setSaved] = useState(false)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState('')
+    const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '' })
+    const [passwordSaved, setPasswordSaved] = useState(false)
 
     const [config, setConfig] = useState({
         cameraIp: '192.168.1.100',
@@ -48,9 +53,74 @@ export default function Settings() {
         setSaved(false)
     }
 
-    const handleSave = () => {
+    const apiHeaders = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+    }
+
+    const loadSettings = async () => {
+        setLoading(true)
+        setError('')
+        try {
+            const res = await fetch('/api/settings', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+            if (!res.ok) {
+                throw new Error('Failed to load settings')
+            }
+            const data = await res.json()
+            setConfig(data.settings)
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        loadSettings()
+    }, [])
+
+    const handleSave = async () => {
+        setError('')
+        const res = await fetch('/api/settings', {
+            method: 'PUT',
+            headers: apiHeaders,
+            body: JSON.stringify({ settings: config }),
+        })
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({ error: 'Save failed' }))
+            setError(data.error || 'Save failed')
+            return
+        }
+
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
+    }
+
+    const handlePasswordChange = async () => {
+        setError('')
+        setPasswordSaved(false)
+        const res = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: apiHeaders,
+            body: JSON.stringify(passwordForm),
+        })
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({ error: 'Password update failed' }))
+            setError(data.error || 'Password update failed')
+            return
+        }
+        setPasswordForm({ oldPassword: '', newPassword: '' })
+        setPasswordSaved(true)
+        setTimeout(() => setPasswordSaved(false), 2000)
+    }
+
+    if (loading) {
+        return <div className="settings-page">Loading settings...</div>
     }
 
     return (
@@ -75,6 +145,8 @@ export default function Settings() {
                     {saved ? 'Saved!' : 'Save Changes'}
                 </motion.button>
             </motion.div>
+
+            {error && <div className="settings-error">{error}</div>}
 
             {/* Camera Configuration */}
             <motion.div className="settings-section glass-card" variants={itemVariants}>
@@ -250,6 +322,35 @@ export default function Settings() {
                         </div>
                     ))}
                 </div>
+            </motion.div>
+
+            <motion.div className="settings-section glass-card" variants={itemVariants}>
+                <div className="settings-section-header">
+                    <KeyRound size={16} />
+                    <h3>Security</h3>
+                </div>
+                <div className="settings-grid">
+                    <div className="setting-field">
+                        <label>Current Password</label>
+                        <input
+                            type="password"
+                            value={passwordForm.oldPassword}
+                            onChange={(e) => setPasswordForm((prev) => ({ ...prev, oldPassword: e.target.value }))}
+                        />
+                    </div>
+                    <div className="setting-field">
+                        <label>New Password</label>
+                        <input
+                            type="password"
+                            value={passwordForm.newPassword}
+                            onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                        />
+                        <span className="setting-hint">Minimum 8 characters</span>
+                    </div>
+                </div>
+                <button className={`save-btn ${passwordSaved ? 'save-btn--saved' : ''}`} onClick={handlePasswordChange}>
+                    {passwordSaved ? 'Password Updated' : 'Change Password'}
+                </button>
             </motion.div>
         </motion.div>
     )

@@ -5,18 +5,27 @@ services:
       dockerfile: Dockerfile
     container_name: ecoeye-app
     ports:
-      - "9000:5000"  # Backend API
-      - "3000:3000"  # Frontend dev server (if needed)
+      - "9000:5000"
     environment:
       - PYTHONUNBUFFERED=1
-      - FLASK_ENV=production
+      - APP_BIND=0.0.0.0
+      - APP_PORT=5000
+      - APP_USERNAME=${APP_USERNAME:-admin}
+      - APP_PASSWORD=${APP_PASSWORD:-changeme}
+      - APP_SECRET=${APP_SECRET:-replace-with-strong-secret}
+      - TOKEN_TTL_SECONDS=${TOKEN_TTL_SECONDS:-28800}
     volumes:
-      - ./ecoeye_test.py:/app/ecoeye_test.py
-      - ./ecoeye_test1.py:/app/ecoeye_test1.py
-      - ./ecoeye_test2.py:/app/ecoeye_test2.py
-      - ./ecoeye_test3.py:/app/ecoeye_test3.py
-      - ./ecoeye_test4.py:/app/ecoeye_test4.py
-      - ./yolo26n.pt:/app/yolo26n.pt
+      - ecoeye-data:/app/data
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: 0.75
+    pids_limit: 200
+    read_only: true
     restart: unless-stopped
     networks:
       - ecoeye-network
@@ -36,3 +45,6 @@ services:
 networks:
   ecoeye-network:
     driver: bridge
+
+volumes:
+  ecoeye-data:

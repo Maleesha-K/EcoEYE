@@ -107,6 +107,13 @@
     border-top: 1px solid var(--border-color);
 }
 
+.user-block {
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+}
+
 .system-status {
     display: flex;
     align-items: center;
@@ -140,6 +147,27 @@
 .status-sub {
     font-size: 0.68rem;
     color: var(--text-muted);
+}
+
+.logout-btn {
+    width: 100%;
+    margin-top: 10px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.logout-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-hover);
 }
 
 /* Mobile */
