@@ -81,6 +81,8 @@ EcoEYE/
 ├── firmware/
 │   └── esp32/
 │       └── ecoeye_esp32_template.ino
+├── scripts/
+│   └── install_pi.sh
 └── control-app/
     └── src/
         ├── pages/InitialSetup.jsx
@@ -123,7 +125,25 @@ EcoEYE/
 
 ## 5. Quick Start on Raspberry Pi
 
-### 5.1 Clone and configure
+### 5.1 One-command installer (recommended)
+
+Run this on Raspberry Pi:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/<YOUR_ORG_OR_USER>/<YOUR_REPO>/main/scripts/install_pi.sh -o install_pi.sh
+chmod +x install_pi.sh
+./install_pi.sh --repo-url https://github.com/<YOUR_ORG_OR_USER>/<YOUR_REPO>.git --branch main --app-dir ~/EcoEYE
+```
+
+What it does:
+1. Installs Docker (if missing)
+2. Ensures Docker Compose plugin exists
+3. Clones or updates repository
+4. Creates `.env` from `.env.example` if needed
+5. Builds and starts containers
+6. Waits for health check to pass
+
+### 5.2 Manual install (fallback)
 
 ```bash
 git clone <your-repo-url>
@@ -136,8 +156,6 @@ Edit `.env` and set secure values:
 - `APP_PASSWORD`
 - `APP_SECRET`
 - `TOKEN_TTL_SECONDS`
-
-### 5.2 Build and run
 
 ```bash
 docker compose build
@@ -410,7 +428,7 @@ Quick usage:
 
 ## 17. Handoff Checklist for Your Friend
 
-1. Deploy Docker stack on Pi.
+1. Run one-command installer on Pi using [scripts/install_pi.sh](scripts/install_pi.sh).
 2. Start MQTT broker on Pi.
 3. Flash ESP32 firmware template with real topics.
 4. Complete Initial Setup in web app.
