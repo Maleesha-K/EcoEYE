@@ -1,0 +1,18 @@
+{
+  "cameraIp": "192.168.1.100",
+  "cameraPort": "554",
+  "cameraProtocol": "rtsp",
+  "mqttBroker": "192.168.1.1",
+  "mqttPort": "1883",
+  "mqttTopic": "ecoeye/control",
+  "hysteresisDelay": "30",
+  "occupancyThreshold": "0",
+  "inferenceRate": "5",
+  "alertEmail": "admin@ecoeye.local",
+  "alertOnDisconnect": true,
+  "alertOnHighTemp": true,
+  "alertOnOccupancyZero": false,
+  "darkMode": true,
+  "compactView": false,
+  "autoRefresh": true
+}

@@ -22,7 +22,8 @@ export default function Login({ onLogin }) {
         body: JSON.stringify({ username, password }),
       })
 
-      const data = await res.json()
+      const raw = await res.text()
+      const data = raw ? JSON.parse(raw) : {}
       if (!res.ok) {
         throw new Error(data.error || 'Login failed')
       }

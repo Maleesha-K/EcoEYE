@@ -11,6 +11,7 @@ import {
     Brain,
     LogOut,
     SlidersHorizontal,
+    Camera,
 } from 'lucide-react'
 import { useState } from 'react'
 import './Sidebar.css'
@@ -21,6 +22,7 @@ const navItems = [
     { path: '/zones', label: 'Zones', icon: Grid3X3 },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/predictions', label: 'AI Predictions', icon: Brain },
+    { path: '/camera-feeds', label: 'Camera Feeds', icon: Camera },
     { path: '/settings', label: 'Settings', icon: Settings },
 ]
 

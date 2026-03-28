@@ -137,6 +137,174 @@ def draw_start_button(frame, started_playback, start_button):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
 
+def run_stream_processor(state_callback, stop_event=None, start_inference=True, sleep_sec=0.02):
+    """
+    Headless processing loop for backend streaming.
+
+    This reuses the same framing and occupancy logic as the desktop window mode,
+    but publishes each rendered frame and zone state through a callback.
+    """
+    if CAMERA_COUNT <= 0:
+        raise ValueError("CAMERA_COUNT must be > 0")
+    if len(CAMERA_SOURCES) < CAMERA_COUNT:
+        raise ValueError(
+            f"Not enough camera URLs. Needed {CAMERA_COUNT}, found {len(CAMERA_SOURCES)}"
+        )
+    if SLOT_SECONDS <= 0:
+        raise ValueError("SLOT_SECONDS must be > 0")
+
+    selected_sources = CAMERA_SOURCES[:CAMERA_COUNT]
+    cams = [CameraReader(src, f"cam{i+1}") for i, src in enumerate(selected_sources)]
+    model = YOLO(MODEL_PATH)
+
+    for cam in cams:
+        cam.start()
+
+    n = len(cams)
+    canvas_w, canvas_h, positions = build_canvas_layout(n, TILE_WIDTH, TILE_HEIGHT)
+    canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
+
+    started_playback = bool(start_inference)
+    last_decision_time = time.time()
+    zone_keys = ["top_left", "top_right", "bottom_left", "bottom_right"]
+    last_seen_time = {
+        tile_idx: {key: 0.0 for key in zone_keys}
+        for tile_idx in range(n)
+    }
+    pending_detection = {
+        tile_idx: {key: False for key in zone_keys}
+        for tile_idx in range(n)
+    }
+    zone_occupied = {
+        tile_idx: {key: False for key in zone_keys}
+        for tile_idx in range(n)
+    }
+
+    cycle_start = time.monotonic()
+
+    try:
+        while True:
+            if stop_event is not None and stop_event.is_set():
+                break
+
+            now = time.monotonic()
+            slot = int(((now - cycle_start) / SLOT_SECONDS) % n)
+
+            frame = cams[slot].get_latest()
+            if frame is not None:
+                x0, y0, w, h = positions[slot]
+                resized = cv2.resize(frame, (w, h), interpolation=cv2.INTER_AREA)
+                canvas[y0:y0 + h, x0:x0 + w] = resized
+
+            frame_for_model = canvas.copy()
+            display = canvas.copy()
+
+            # In headless mode dividers default to midpoints for each tile.
+            dividers = {
+                idx: (max(1, TILE_WIDTH // 2), max(1, TILE_HEIGHT // 2))
+                for idx in range(n)
+            }
+
+            if started_playback:
+                results = model.predict(
+                    frame_for_model,
+                    classes=[0],
+                    conf=CONFIDENCE_THRESHOLD,
+                    stream=True,
+                    verbose=False,
+                )
+
+                for r in results:
+                    for box in r.boxes:
+                        x1, y1, x2, y2 = box.xyxy[0]
+                        cx, cy = int((x1 + x2) / 2), int(y2)
+                        cv2.circle(display, (cx, cy), 5, (255, 255, 255), -1)
+
+                        for tile_idx, pos in enumerate(positions):
+                            x0, y0, w, h = pos
+                            if x0 < cx < (x0 + w) and y0 < cy < (y0 + h):
+                                local_x = cx - x0
+                                local_y = cy - y0
+                                div_x, div_y = dividers[tile_idx]
+                                zone_key = zone_from_local_point(local_x, local_y, div_x, div_y)
+                                pending_detection[tile_idx][zone_key] = True
+                                break
+
+                wall_time_now = time.time()
+                if wall_time_now - last_decision_time >= DECISION_INTERVAL_SEC:
+                    for tile_idx in range(n):
+                        for key in zone_keys:
+                            if pending_detection[tile_idx][key]:
+                                zone_occupied[tile_idx][key] = True
+                                last_seen_time[tile_idx][key] = wall_time_now
+                            elif wall_time_now - last_seen_time[tile_idx][key] >= DECISION_INTERVAL_SEC:
+                                zone_occupied[tile_idx][key] = False
+                            pending_detection[tile_idx][key] = False
+
+                    last_decision_time = wall_time_now
+
+            for idx, cam in enumerate(cams):
+                draw_tile_status(display, cam, positions[idx], is_active=(idx == slot))
+
+            cv2.putText(display, f"Updated this slot: CAM {slot+1}",
+                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(display, f"Total cameras: {n}",
+                        (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+            for idx, pos in enumerate(positions):
+                x0, y0, w, h = pos
+                div_x, div_y = dividers[idx]
+                gx = x0 + div_x
+                gy = y0 + div_y
+
+                cv2.line(display, (gx, y0), (gx, y0 + h), (255, 255, 255), 2)
+                cv2.line(display, (x0, gy), (x0 + w, gy), (255, 255, 255), 2)
+
+                zone_rects = {
+                    "top_left": (x0, y0, gx, gy),
+                    "top_right": (gx, y0, x0 + w, gy),
+                    "bottom_left": (x0, gy, gx, y0 + h),
+                    "bottom_right": (gx, gy, x0 + w, y0 + h),
+                }
+
+                for key, (zx1, zy1, zx2, zy2) in zone_rects.items():
+                    occ = zone_occupied[idx][key]
+                    color = (0, 255, 0) if occ else (0, 0, 255)
+                    cv2.rectangle(display, (zx1, zy1), (zx2, zy2), color, 1)
+
+                labels = [
+                    ("TL", zone_occupied[idx]["top_left"]),
+                    ("TR", zone_occupied[idx]["top_right"]),
+                    ("BL", zone_occupied[idx]["bottom_left"]),
+                    ("BR", zone_occupied[idx]["bottom_right"]),
+                ]
+                text_y = y0 + 24
+                for short_key, occ in labels:
+                    text = f"{short_key}: {'ON' if occ else 'OFF'}"
+                    text_color = (0, 255, 0) if occ else (0, 0, 255)
+                    cv2.putText(display, text, (x0 + 10, text_y),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
+                    text_y += 18
+
+            cam_zone_status = {
+                f"cam{idx+1}": dict(zone_occupied[idx])
+                for idx in range(n)
+            }
+            cam_status = {
+                f"cam{idx+1}": {
+                    "connected": bool(cams[idx].connected),
+                }
+                for idx in range(n)
+            }
+
+            state_callback(display, cam_zone_status, cam_status)
+            time.sleep(max(0.0, float(sleep_sec)))
+
+    finally:
+        for cam in cams:
+            cam.stop()
+
+
 def main():
     if CAMERA_COUNT <= 0:
         raise ValueError("CAMERA_COUNT must be > 0")

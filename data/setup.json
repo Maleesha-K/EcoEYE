@@ -1,0 +1,60 @@
+{
+  "version": 2,
+  "autoTurnOffWhenEmpty": true,
+  "occupancyDecisionIntervalSec": 1.0,
+  "cameras": [
+    {
+      "id": "cam-1",
+      "name": "Main Camera",
+      "sourceType": "rtsp",
+      "source": "rtsp://192.168.1.10:554/stream1",
+      "dividerRatio": 0.5,
+      "enabled": true
+    }
+  ],
+  "devices": [
+    {
+      "id": "dev-1",
+      "name": "Lounge Lights",
+      "kind": "light",
+      "protocol": "mqtt",
+      "target": "esp32/lounge/cmd",
+      "onCommand": "{\"power\":\"on\"}",
+      "offCommand": "{\"power\":\"off\"}",
+      "meta": {}
+    }
+  ],
+  "zoneMappings": [
+    {
+      "id": "map-1",
+      "cameraId": "cam-1",
+      "zone": "left",
+      "deviceId": "dev-1",
+      "priority": 1,
+      "mode": "occupancy"
+    }
+  ],
+  "control": {
+    "setupCompleted": false,
+    "topicModel": "per-device",
+    "holdSeconds": 30,
+    "cameraFailPolicy": "fail-safe-off",
+    "mqtt": {
+      "host": "192.168.1.1",
+      "port": 1883,
+      "qos": 1,
+      "retain": false,
+      "clientId": "ecoeye-controller"
+    },
+    "retry": {
+      "attempts": 3,
+      "backoffMs": 500
+    },
+    "acDefaults": {
+      "power": "on",
+      "mode": "cool",
+      "temp": 24,
+      "fan": "auto"
+    }
+  }
+}

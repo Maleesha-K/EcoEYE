@@ -9,10 +9,13 @@ import time
 from functools import wraps
 from pathlib import Path
 
+import cv2
 import requests
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 from paho.mqtt import client as mqtt_client
+
+from ecoeye_framed_yolo import run_stream_processor
 
 app = Flask(__name__)
 CORS(app)
@@ -118,6 +121,69 @@ RUNTIME_STATE = {
 }
 RUNTIME_LOCK = threading.Lock()
 MQTT_CLIENT = None
+
+STREAM_LOCK = threading.Lock()
+STREAM_STATE = {
+    "jpeg": None,
+    "zoneStatus": {},
+    "cameraStatus": {},
+    "lastFrameAt": 0.0,
+    "runtimeError": "",
+}
+STREAM_THREAD = None
+STREAM_STOP_EVENT = None
+
+
+def _stream_state_callback(frame_bgr, zone_status, camera_status):
+    ok, encoded = cv2.imencode(".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+    if not ok:
+        return
+
+    with STREAM_LOCK:
+        STREAM_STATE["jpeg"] = encoded.tobytes()
+        STREAM_STATE["zoneStatus"] = zone_status
+        STREAM_STATE["cameraStatus"] = camera_status
+        STREAM_STATE["lastFrameAt"] = time.time()
+        STREAM_STATE["runtimeError"] = ""
+
+
+def _stream_worker(stop_event):
+    try:
+        run_stream_processor(state_callback=_stream_state_callback, stop_event=stop_event, start_inference=True)
+    except Exception as ex:
+        with STREAM_LOCK:
+            STREAM_STATE["runtimeError"] = str(ex)
+
+
+def ensure_stream_runtime_started():
+    global STREAM_THREAD, STREAM_STOP_EVENT
+
+    if STREAM_THREAD is not None and STREAM_THREAD.is_alive():
+        return
+
+    STREAM_STOP_EVENT = threading.Event()
+    STREAM_THREAD = threading.Thread(target=_stream_worker, args=(STREAM_STOP_EVENT,), daemon=True)
+    STREAM_THREAD.start()
+
+
+def generate_mjpeg_stream():
+    while True:
+        ensure_stream_runtime_started()
+
+        with STREAM_LOCK:
+            jpeg = STREAM_STATE.get("jpeg")
+
+        if jpeg is None:
+            time.sleep(0.05)
+            continue
+
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n"
+            b"Content-Length: " + str(len(jpeg)).encode("ascii") + b"\r\n\r\n" + jpeg + b"\r\n"
+        )
+
+        time.sleep(0.03)
 
 
 def ensure_data_files():
@@ -833,6 +899,33 @@ def control_runtime():
                 "dispatchLog": RUNTIME_STATE["dispatchLog"][-30:],
             }
         ), 200
+
+
+@app.route("/api/camera/video-feed", methods=["GET"])
+def camera_video_feed():
+    ensure_stream_runtime_started()
+    return Response(generate_mjpeg_stream(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.route("/api/camera/zone-status", methods=["GET"])
+def camera_zone_status():
+    ensure_stream_runtime_started()
+
+    with STREAM_LOCK:
+        zone_status = dict(STREAM_STATE.get("zoneStatus", {}))
+        camera_status = dict(STREAM_STATE.get("cameraStatus", {}))
+        last_frame_at = float(STREAM_STATE.get("lastFrameAt", 0.0) or 0.0)
+        runtime_error = str(STREAM_STATE.get("runtimeError", ""))
+
+    return jsonify(
+        {
+            "zoneStatus": zone_status,
+            "cameraStatus": camera_status,
+            "lastFrameAt": last_frame_at,
+            "runtimeError": runtime_error,
+            "streamOnline": bool(last_frame_at > 0 and (time.time() - last_frame_at) < 3.0),
+        }
+    ), 200
 
 
 @app.route("/")
