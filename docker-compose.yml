@@ -23,6 +23,8 @@ services:
     environment:
       - LAUNCH_URL=http://localhost:5000
       - ENABLE_GPU=1
+      - CURSOR=1
+      - SHOW_CURSOR=1
     restart: unless-stopped
 
 volumes:
