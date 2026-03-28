@@ -12,10 +12,6 @@ services:
       - PYTHONUNBUFFERED=1
       - APP_BIND=0.0.0.0
       - APP_PORT=5000
-      - APP_USERNAME=${APP_USERNAME:-admin}
-      - APP_PASSWORD=${APP_PASSWORD:-changeme}
-      - APP_SECRET=${APP_SECRET:-replace-with-strong-secret}
-      - TOKEN_TTL_SECONDS=${TOKEN_TTL_SECONDS:-28800}
     volumes:
       - ecoeye-data:/app/data
     restart: unless-stopped

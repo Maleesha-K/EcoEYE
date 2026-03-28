@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import hashlib
 import hmac
 import json
@@ -30,7 +30,10 @@ SETUP_FILE = DATA_DIR / "setup.json"
 CAMERA_CONFIG_FILE = DATA_DIR / "camera-config.json"
 
 APP_VERSION = "3.0.0"
-TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+try:
+    TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+except (ValueError, TypeError):
+    TOKEN_TTL_SECONDS = 28800
 TOKEN_SECRET = os.getenv("APP_SECRET", "change-this-secret-on-first-boot")
 STARTED_AT = time.time()
 
