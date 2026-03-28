@@ -8,12 +8,18 @@ COPY control-app/ .
 RUN npm run build
 
 # Stage 2: Runtime
-FROM python:3.11-slim
+FROM balenalib/raspberrypi4-64-debian-python:3.11-bookworm-run
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Enable udev for hardware hotplugging
+ENV UDEV=on
+
 WORKDIR /app
+
+# Install system dependencies including udev and camera libs
+RUN install_packages udev v4l-utils
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
@@ -22,6 +28,7 @@ COPY app.py ./
 COPY --from=frontend-builder /app/control-app/dist /app/frontend/dist
 
 RUN useradd --create-home --shell /bin/bash appuser \
+    && usermod -aG video appuser \
     && mkdir -p /app/data \
     && chown -R appuser:appuser /app
 

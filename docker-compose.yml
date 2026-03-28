@@ -3,9 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ecoeye-app
-    ports:
-      - "9000:5000"
+    privileged: true
+    network_mode: host
     environment:
       - PYTHONUNBUFFERED=1
       - APP_BIND=0.0.0.0
@@ -18,17 +17,10 @@ services:
       - ecoeye-data:/app/data
     tmpfs:
       - /tmp:size=64m
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
     mem_limit: 512m
     cpus: 0.75
     pids_limit: 200
-    read_only: true
     restart: unless-stopped
-    networks:
-      - ecoeye-network
 
   # Optional: Frontend development server (commented out, use main app instead)
   # frontend-dev:
