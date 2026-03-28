@@ -19,7 +19,10 @@ ENV UDEV=on
 WORKDIR /app
 
 # Install system dependencies including udev and camera libs
-RUN install_packages udev v4l-utils libgl1-mesa-glx libglib2.0-0
+RUN install_packages udev v4l-utils libgl1-mesa-glx libglib2.0-0 python3-opencv
+
+# Ensure system python packages are in path
+ENV PYTHONPATH=$PYTHONPATH:/usr/lib/python3/dist-packages
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
@@ -27,12 +30,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py ./
 COPY --from=frontend-builder /app/control-app/dist /app/frontend/dist
 
-RUN useradd --create-home --shell /bin/bash appuser \
-    && usermod -aG video appuser \
-    && mkdir -p /app/data \
-    && chown -R appuser:appuser /app
-
-USER appuser
+RUN mkdir -p /app/data
 
 EXPOSE 5000
 
