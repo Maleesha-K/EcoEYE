@@ -27,7 +27,7 @@ ENV PYTHONPATH=$PYTHONPATH:/usr/lib/python3/dist-packages
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py ./
+COPY . ./
 COPY --from=frontend-builder /app/control-app/dist /app/frontend/dist
 
 RUN mkdir -p /app/data
