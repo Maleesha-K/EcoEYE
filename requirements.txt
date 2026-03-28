@@ -3,3 +3,9 @@ Flask-Cors==4.0.1
 gunicorn==22.0.0
 paho-mqtt==2.1.0
 requests==2.32.3
+opencv-python-headless==4.8.1.78
+ultralytics==8.0.234
+torch==2.1.0
+torchvision==0.16.0
+numpy==1.26.4
+pillow==10.2.0

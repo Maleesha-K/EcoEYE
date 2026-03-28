@@ -16,5 +16,13 @@ services:
       - ecoeye-data:/app/data
     restart: unless-stopped
 
+  browser:
+    image: balenablocks/browser
+    privileged: true
+    network_mode: host
+    environment:
+      - LAUNCH_URL=http://localhost:5000
+    restart: unless-stopped
+
 volumes:
   ecoeye-data:
