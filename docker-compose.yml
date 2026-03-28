@@ -1,8 +1,7 @@
+version: '2.1'
 services:
   ecoeye-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     privileged: true
     network_mode: host
     environment:
@@ -15,28 +14,7 @@ services:
       - TOKEN_TTL_SECONDS=${TOKEN_TTL_SECONDS:-28800}
     volumes:
       - ecoeye-data:/app/data
-    tmpfs:
-      - /tmp:size=64m
-    mem_limit: 512m
-    cpus: 0.75
-    pids_limit: 200
     restart: unless-stopped
-
-  # Optional: Frontend development server (commented out, use main app instead)
-  # frontend-dev:
-  #   build:
-  #     context: ./control-app
-  #     dockerfile: Dockerfile.dev
-  #   ports:
-  #     - "5173:5173"
-  #   volumes:
-  #     - ./control-app/src:/app/src
-  #   networks:
-  #     - ecoeye-network
-
-networks:
-  ecoeye-network:
-    driver: bridge
 
 volumes:
   ecoeye-data:
