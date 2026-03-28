@@ -14,19 +14,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Enable udev for hardware access
-ENV UDEV=1
-
-# Working directory
-WORKDIR /app
-
-# Install system dependencies including udev and camera libs
-RUN install_packages udev v4l-utils libgl1-mesa-glx libglib2.0-0 python3-opencv
-
-# Ensure app directory and system packages are in path
-ENV PYTHONPATH=/app:/usr/lib/python3/dist-packages
-ENV PYTHONUNBUFFERED=1
-
-COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all files

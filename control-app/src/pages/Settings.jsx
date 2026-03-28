@@ -28,6 +28,12 @@ export default function Settings({ token }) {
     const [error, setError] = useState('')
     const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '' })
     const [passwordSaved, setPasswordSaved] = useState(false)
+    const [wifiNetworks, setWifiNetworks] = useState([])
+    const [wifiScanning, setWifiScanning] = useState(false)
+    const [wifiConnecting, setWifiConnecting] = useState(false)
+    const [selectedNetwork, setSelectedNetwork] = useState(null)
+    const [wifiPassword, setWifiPassword] = useState('')
+    const [wifiStatus, setWifiStatus] = useState({ connected: false, ssid: '' })
 
     const [config, setConfig] = useState({
         cameraIp: '192.168.1.100',
@@ -79,8 +85,64 @@ export default function Settings({ token }) {
         }
     }
 
+    const loadWifiStatus = async () => {
+        try {
+            const res = await fetch('/api/wifi/status', {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setWifiStatus(data)
+            }
+        } catch (err) {
+            console.error('Failed to load wifi status', err)
+        }
+    }
+
+    const scanWifi = async () => {
+        setWifiScanning(true)
+        setError('')
+        try {
+            const res = await fetch('/api/wifi/scan', {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (!res.ok) throw new Error('Scan failed')
+            const data = await res.json()
+            setWifiNetworks(data)
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setWifiScanning(false)
+        }
+    }
+
+    const connectWifi = async () => {
+        if (!selectedNetwork) return
+        setWifiConnecting(true)
+        setError('')
+        try {
+            const res = await fetch('/api/wifi/connect', {
+                method: 'POST',
+                headers: apiHeaders,
+                body: JSON.stringify({ ssid: selectedNetwork.ssid, password: wifiPassword }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || 'Connection failed')
+            setWifiPassword('')
+            setSelectedNetwork(null)
+            setSaved(true)
+            setTimeout(() => setSaved(false), 3000)
+            loadWifiStatus()
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setWifiConnecting(false)
+        }
+    }
+
     useEffect(() => {
         loadSettings()
+        loadWifiStatus()
     }, [])
 
     const handleSave = async () => {
@@ -216,6 +278,69 @@ export default function Settings({ token }) {
                             onChange={(e) => handleChange('mqttTopic', e.target.value)}
                         />
                     </div>
+                </div>
+            </motion.div>
+
+            {/* WiFi Configuration */}
+            <motion.div className="settings-section glass-card" variants={itemVariants}>
+                <div className="settings-section-header">
+                    <Wifi size={16} />
+                    <h3>WiFi Management</h3>
+                    {wifiStatus.connected && (
+                        <span className="wifi-status-badge">Connected: {wifiStatus.ssid}</span>
+                    )}
+                </div>
+                
+                <div className="wifi-controls">
+                    <button 
+                        className="save-btn" 
+                        onClick={scanWifi} 
+                        disabled={wifiScanning}
+                        style={{ marginBottom: '16px' }}
+                    >
+                        <RefreshCw size={14} className={wifiScanning ? 'animate-spin' : ''} />
+                        {wifiScanning ? 'Scanning...' : 'Scan Networks'}
+                    </button>
+
+                    <div className="wifi-list">
+                        {wifiNetworks.length === 0 && !wifiScanning && (
+                            <p className="setting-hint">Click scan to find networks</p>
+                        )}
+                        {wifiNetworks.map((net) => (
+                            <div 
+                                key={net.ssid} 
+                                className={`wifi-network ${selectedNetwork?.ssid === net.ssid ? 'wifi-network--selected' : ''}`}
+                                onClick={() => setSelectedNetwork(net)}
+                            >
+                                <div className="network-info">
+                                    <Wifi size={14} opacity={parseInt(net.signal) / 100} />
+                                    <span className="network-ssid">{net.ssid}</span>
+                                </div>
+                                <span className="network-signal">{net.bars} ({net.signal}%)</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {selectedNetwork && (
+                        <div className="wifi-connect-form">
+                            <div className="setting-field">
+                                <label>Password for {selectedNetwork.ssid}</label>
+                                <input 
+                                    type="password" 
+                                    placeholder="Enter WiFi Password"
+                                    value={wifiPassword}
+                                    onChange={(e) => setWifiPassword(e.target.value)}
+                                />
+                            </div>
+                            <button 
+                                className="save-btn" 
+                                onClick={connectWifi}
+                                disabled={wifiConnecting}
+                            >
+                                {wifiConnecting ? 'Connecting...' : 'Connect to Network'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </motion.div>
 

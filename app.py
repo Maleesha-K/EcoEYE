@@ -11,6 +11,7 @@ from pathlib import Path
 
 import cv2
 import requests
+import subprocess
 import ecoeye_framed_yolo
 from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -813,6 +814,80 @@ def get_settings():
 
 @app.route("/api/settings", methods=["PUT"])
 @require_auth
+@app.route("/api/wifi/scan", methods=["GET"])
+@require_auth
+def wifi_scan():
+    try:
+        # Rescan first to get fresh results
+        subprocess.run(["nmcli", "device", "wifi", "rescan"], capture_output=True, timeout=10)
+        
+        # Get the list
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,BARS", "device", "wifi", "list"],
+            capture_output=True, text=True, timeout=10
+        )
+        
+        networks = []
+        for line in result.stdout.strip().split("\n"):
+            if not line: continue
+            parts = line.split(":")
+            if len(parts) >= 4:
+                ssid = parts[0]
+                if not ssid: continue # Skip hidden/empty SSIDs
+                networks.append({
+                    "ssid": ssid,
+                    "signal": parts[1],
+                    "security": parts[2],
+                    "bars": parts[3]
+                })
+        
+        # Deduplicate by SSID, keeping strongest signal
+        deduped = {}
+        for n in networks:
+            if n["ssid"] not in deduped or int(n["signal"]) > int(deduped[n["ssid"]]["signal"]):
+                deduped[n["ssid"]] = n
+                
+        return jsonify(list(deduped.values())), 200
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
+
+@app.route("/api/wifi/connect", methods=["POST"])
+@require_auth
+def wifi_connect():
+    payload = request.get_json(silent=True) or {}
+    ssid = payload.get("ssid")
+    password = payload.get("password")
+    
+    if not ssid:
+        return jsonify({"error": "SSID is required"}), 400
+        
+    try:
+        cmd = ["nmcli", "device", "wifi", "connect", ssid]
+        if password:
+            cmd.extend(["password", password])
+            
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            return jsonify({"status": "success", "message": f"Connected to {ssid}"}), 200
+        else:
+            return jsonify({"status": "error", "message": result.stderr or result.stdout}), 400
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
+@app.route("/api/wifi/status", methods=["GET"])
+@require_auth
+def wifi_status():
+    try:
+        result = subprocess.run(["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"], capture_output=True, text=True)
+        for line in result.stdout.strip().split("\n"):
+            if line.startswith("yes:"):
+                return jsonify({"connected": True, "ssid": line.split(":")[1]}), 200
+        return jsonify({"connected": False}), 200
+    except Exception:
+        return jsonify({"connected": False}), 200
+
 def update_settings():
     payload = request.get_json(silent=True) or {}
     provided = payload.get("settings")
