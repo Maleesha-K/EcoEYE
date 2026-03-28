@@ -17,11 +17,12 @@ services:
     restart: unless-stopped
 
   browser:
-    image: balenablocks/browser
+    image: bh.cr/balenalabs/browser-aarch64:v2.7.0
     privileged: true
     network_mode: host
     environment:
       - LAUNCH_URL=http://localhost:5000
+      - ENABLE_GPU=1
     restart: unless-stopped
 
 volumes:
