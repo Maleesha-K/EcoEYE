@@ -1061,7 +1061,10 @@ def serve_frontend(path):
 if __name__ == "__main__":
     ensure_data_files()
     bind_host = os.getenv("APP_BIND", "0.0.0.0")
-    bind_port = int(os.getenv("APP_PORT", "5000"))
+    try:
+        bind_port = int(os.getenv("APP_PORT", "80"))
+    except (ValueError, TypeError):
+        bind_port = 80
 
     print("=" * 60)
     print("EcoEYE Secure Offline Server Starting")

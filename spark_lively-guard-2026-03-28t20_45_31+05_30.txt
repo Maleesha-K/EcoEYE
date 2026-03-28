@@ -1,0 +1,1000 @@
+2026-03-28T20:19:21+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:19:21+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:19:21+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:19:21+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:21+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:19:21+05:30 <ecoeye-app> [2026-03-28 14:49:21 +0000] [92] [INFO] Worker exiting (pid: 92)
+2026-03-28T20:19:22+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:19:22+05:30 <ecoeye-app> [2026-03-28 14:49:22 +0000] [1] [ERROR] Worker (pid:92) exited with code 3
+2026-03-28T20:19:22+05:30 <ecoeye-app> [2026-03-28 14:49:22 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:19:22+05:30 <ecoeye-app> [2026-03-28 14:49:22 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:19:24+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:19:24+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:19:24+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:19:24+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:19:24+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:19:24+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:19:24+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:19:24+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:19:24+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:19:24+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:19:24+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:19:24+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:19:24+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:19:24+05:30 <ecoeye-app> [2026-03-28 14:49:24 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:19:24+05:30 <ecoeye-app> [2026-03-28 14:49:24 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:19:24+05:30 <ecoeye-app> [2026-03-28 14:49:24 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:19:24+05:30 <ecoeye-app> [2026-03-28 14:49:24 +0000] [77] [INFO] Booting worker with pid: 77
+2026-03-28T20:19:29+05:30 <ecoeye-app> [2026-03-28 14:49:29 +0000] [77] [ERROR] Exception in worker process
+2026-03-28T20:19:29+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:19:29+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:19:29+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:19:29+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:19:29+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:19:29+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:19:29+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:19:29+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:19:29+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:19:29+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:19:29+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:19:29+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:19:29+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:19:29+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:19:29+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:19:29+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:19:29+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:19:29+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:19:29+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:29+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:19:29+05:30 <ecoeye-app> [2026-03-28 14:49:29 +0000] [77] [INFO] Worker exiting (pid: 77)
+2026-03-28T20:19:30+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:19:30+05:30 <ecoeye-app> [2026-03-28 14:49:30 +0000] [1] [ERROR] Worker (pid:77) exited with code 3
+2026-03-28T20:19:30+05:30 <ecoeye-app> [2026-03-28 14:49:30 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:19:30+05:30 <ecoeye-app> [2026-03-28 14:49:30 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:19:34+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:19:34+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:19:34+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:19:34+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:19:34+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:19:34+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:19:34+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:19:34+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:19:34+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:19:34+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:19:34+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:19:34+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:19:34+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:19:34+05:30 <ecoeye-app> [2026-03-28 14:49:34 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:19:34+05:30 <ecoeye-app> [2026-03-28 14:49:34 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:19:34+05:30 <ecoeye-app> [2026-03-28 14:49:34 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:19:34+05:30 <ecoeye-app> [2026-03-28 14:49:34 +0000] [92] [INFO] Booting worker with pid: 92
+2026-03-28T20:19:41+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:19:40+05:30 <ecoeye-app> [2026-03-28 14:49:40 +0000] [92] [ERROR] Exception in worker process
+2026-03-28T20:19:40+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:19:40+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:19:40+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:19:40+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:19:40+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:19:40+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:19:40+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:19:40+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:19:40+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:19:40+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:19:40+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:19:40+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:19:40+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:19:40+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:19:40+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:19:40+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:19:40+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:19:40+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:19:40+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:40+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:19:40+05:30 <ecoeye-app> [2026-03-28 14:49:40 +0000] [92] [INFO] Worker exiting (pid: 92)
+2026-03-28T20:19:40+05:30 <ecoeye-app> [2026-03-28 14:49:40 +0000] [1] [ERROR] Worker (pid:92) exited with code 3
+2026-03-28T20:19:40+05:30 <ecoeye-app> [2026-03-28 14:49:40 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:19:40+05:30 <ecoeye-app> [2026-03-28 14:49:40 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:19:47+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:19:47+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:19:47+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:19:47+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:19:47+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:19:47+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:19:47+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:19:47+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:19:47+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:19:47+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:19:47+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:19:47+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:19:47+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:19:48+05:30 <ecoeye-app> [2026-03-28 14:49:48 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:19:48+05:30 <ecoeye-app> [2026-03-28 14:49:48 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:19:48+05:30 <ecoeye-app> [2026-03-28 14:49:48 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:19:48+05:30 <ecoeye-app> [2026-03-28 14:49:48 +0000] [93] [INFO] Booting worker with pid: 93
+2026-03-28T20:19:52+05:30 <ecoeye-app> [2026-03-28 14:49:52 +0000] [93] [ERROR] Exception in worker process
+2026-03-28T20:19:52+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:19:52+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:19:52+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:19:52+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:19:52+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:19:52+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:19:52+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:19:52+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:19:52+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:19:52+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:19:52+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:19:52+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:19:52+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:19:52+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:19:52+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:19:52+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:19:52+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:19:52+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:19:52+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:19:52+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:19:52+05:30 <ecoeye-app> [2026-03-28 14:49:52 +0000] [93] [INFO] Worker exiting (pid: 93)
+2026-03-28T20:19:54+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:19:53+05:30 <ecoeye-app> [2026-03-28 14:49:53 +0000] [1] [ERROR] Worker (pid:93) exited with code 3
+2026-03-28T20:19:53+05:30 <ecoeye-app> [2026-03-28 14:49:53 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:19:53+05:30 <ecoeye-app> [2026-03-28 14:49:53 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:20:07+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:20:07+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:20:07+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:20:07+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:20:07+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:20:07+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:20:07+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:20:07+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:20:07+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:20:07+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:20:07+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:20:07+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:20:07+05:30 <ecoeye-app> [2026-03-28 14:50:07 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:20:07+05:30 <ecoeye-app> [2026-03-28 14:50:07 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:20:07+05:30 <ecoeye-app> [2026-03-28 14:50:07 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:20:07+05:30 <ecoeye-app> [2026-03-28 14:50:07 +0000] [92] [INFO] Booting worker with pid: 92
+2026-03-28T20:20:06+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:20:12+05:30 <ecoeye-app> [2026-03-28 14:50:12 +0000] [92] [ERROR] Exception in worker process
+2026-03-28T20:20:12+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:20:12+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:20:12+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:20:12+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:20:12+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:20:12+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:20:12+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:20:12+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:20:12+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:20:12+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:20:12+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:20:12+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:20:12+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:20:12+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:20:12+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:20:12+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:20:12+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:20:12+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:20:12+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:12+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:20:12+05:30 <ecoeye-app> [2026-03-28 14:50:12 +0000] [92] [INFO] Worker exiting (pid: 92)
+2026-03-28T20:20:13+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:20:13+05:30 <ecoeye-app> [2026-03-28 14:50:13 +0000] [1] [ERROR] Worker (pid:92) exited with code 3
+2026-03-28T20:20:13+05:30 <ecoeye-app> [2026-03-28 14:50:13 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:20:13+05:30 <ecoeye-app> [2026-03-28 14:50:13 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:20:39+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:20:39+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:20:39+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:20:39+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:20:39+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:20:39+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:20:39+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:20:39+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:20:39+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:20:39+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:20:39+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:20:39+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:20:39+05:30 <ecoeye-app> [2026-03-28 14:50:39 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:20:39+05:30 <ecoeye-app> [2026-03-28 14:50:39 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:20:39+05:30 <ecoeye-app> [2026-03-28 14:50:39 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:20:39+05:30 <ecoeye-app> [2026-03-28 14:50:39 +0000] [92] [INFO] Booting worker with pid: 92
+2026-03-28T20:20:39+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:20:44+05:30 <ecoeye-app> [2026-03-28 14:50:44 +0000] [92] [ERROR] Exception in worker process
+2026-03-28T20:20:44+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:20:44+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:20:44+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:20:44+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:20:44+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:20:44+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:20:44+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:20:44+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:20:44+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:20:44+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:20:44+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:20:44+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:20:44+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:20:44+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:20:44+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:20:44+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:20:44+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:20:44+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:20:44+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:20:44+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:20:44+05:30 <ecoeye-app> [2026-03-28 14:50:44 +0000] [92] [INFO] Worker exiting (pid: 92)
+2026-03-28T20:20:45+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:20:45+05:30 <ecoeye-app> [2026-03-28 14:50:45 +0000] [1] [ERROR] Worker (pid:92) exited with code 3
+2026-03-28T20:20:45+05:30 <ecoeye-app> [2026-03-28 14:50:45 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:20:45+05:30 <ecoeye-app> [2026-03-28 14:50:45 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:21:36+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:21:36+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:21:36+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:21:36+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:21:36+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:21:36+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:21:36+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:21:36+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:21:36+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:21:36+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:21:36+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:21:36+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:21:37+05:30 <ecoeye-app> [2026-03-28 14:51:37 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:21:37+05:30 <ecoeye-app> [2026-03-28 14:51:37 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:21:37+05:30 <ecoeye-app> [2026-03-28 14:51:37 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:21:37+05:30 <ecoeye-app> [2026-03-28 14:51:37 +0000] [93] [INFO] Booting worker with pid: 93
+2026-03-28T20:21:36+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:21:41+05:30 <ecoeye-app> [2026-03-28 14:51:41 +0000] [93] [ERROR] Exception in worker process
+2026-03-28T20:21:41+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:21:41+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:21:41+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:21:41+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:21:41+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:21:41+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:21:41+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:21:41+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:21:41+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:21:41+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:21:41+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:21:41+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:21:41+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:21:41+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:21:41+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:21:41+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:21:41+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:21:41+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:21:41+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:21:41+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:21:41+05:30 <ecoeye-app> [2026-03-28 14:51:41 +0000] [93] [INFO] Worker exiting (pid: 93)
+2026-03-28T20:21:42+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:21:42+05:30 <ecoeye-app> [2026-03-28 14:51:42 +0000] [1] [ERROR] Worker (pid:93) exited with code 3
+2026-03-28T20:21:42+05:30 <ecoeye-app> [2026-03-28 14:51:42 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:21:42+05:30 <ecoeye-app> [2026-03-28 14:51:42 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:22:43+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:22:43+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:22:43+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:22:43+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:22:43+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:22:43+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:22:43+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:22:43+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:22:43+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:22:43+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:22:43+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:22:43+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:22:43+05:30 <ecoeye-app> [2026-03-28 14:52:43 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:22:43+05:30 <ecoeye-app> [2026-03-28 14:52:43 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:22:43+05:30 <ecoeye-app> [2026-03-28 14:52:43 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:22:43+05:30 <ecoeye-app> [2026-03-28 14:52:43 +0000] [80] [INFO] Booting worker with pid: 80
+2026-03-28T20:22:43+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:22:49+05:30 <ecoeye-app> [2026-03-28 14:52:49 +0000] [80] [ERROR] Exception in worker process
+2026-03-28T20:22:49+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:22:49+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:22:49+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:22:49+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:22:49+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:22:49+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:22:49+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:22:49+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:22:49+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:22:49+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:22:49+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:22:49+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:22:49+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:22:49+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:22:49+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:22:49+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:22:49+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:22:49+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:22:49+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:22:49+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:22:49+05:30 <ecoeye-app> [2026-03-28 14:52:49 +0000] [80] [INFO] Worker exiting (pid: 80)
+2026-03-28T20:22:50+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:22:50+05:30 <ecoeye-app> [2026-03-28 14:52:50 +0000] [1] [ERROR] Worker (pid:80) exited with code 3
+2026-03-28T20:22:50+05:30 <ecoeye-app> [2026-03-28 14:52:50 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:22:50+05:30 <ecoeye-app> [2026-03-28 14:52:50 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T19:30:21+05:30 Warning: Suppressed 5 message(s) due to rate limiting
+2026-03-28T19:30:22+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T19:30:22+05:30 <browser> Running balena base image entrypoint...
+2026-03-28T19:30:22+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T19:30:22+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T19:30:22+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T19:30:22+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T19:30:22+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T19:30:22+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T19:30:22+05:30 <ecoeye-app> Starting Gunicorn...
+1970-01-01T05:30:38+05:30 <browser> setting xserver-xorg-legacy/xwrapper/allowed_users from configuration file
+1970-01-01T05:30:39+05:30 <browser> balenaLabs browser version: 2.12.0
+1970-01-01T05:30:39+05:30 <browser> Setting CPU Scaling Governor to 'performance'
+1970-01-01T05:30:39+05:30 <browser> Disabling cursor
+1970-01-01T05:30:39+05:30 <browser> Raspberry Pi 5 detected, injecting X.org config
+1970-01-01T05:30:39+05:30 <browser> unix_chkpwd[112]: account chromium has password changed in future
+1970-01-01T05:30:39+05:30 <ecoeye-app> [1970-01-01 00:00:39 +0000] [1] [INFO] Starting gunicorn 22.0.0
+1970-01-01T05:30:39+05:30 <ecoeye-app> [1970-01-01 00:00:39 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+1970-01-01T05:30:39+05:30 <ecoeye-app> [1970-01-01 00:00:39 +0000] [1] [INFO] Using worker: gthread
+1970-01-01T05:30:39+05:30 <ecoeye-app> [1970-01-01 00:00:39 +0000] [125] [INFO] Booting worker with pid: 125
+1970-01-01T05:30:39+05:30 <browser> xauth: (stdin):1:  bad display name "6a319cd:1" in "add" command
+1970-01-01T05:30:39+05:30 <browser> 
+1970-01-01T05:30:39+05:30 <browser> 
+1970-01-01T05:30:39+05:30 <browser> X.Org X Server 1.21.1.16
+1970-01-01T05:30:39+05:30 <browser> X Protocol Version 11, Revision 0
+1970-01-01T05:30:39+05:30 <browser> Current Operating System: Linux 6a319cd 6.12.61-v8-16k #1 SMP PREEMPT Tue Dec  9 15:09:13 UTC 2025 aarch64
+1970-01-01T05:30:39+05:30 <browser> Kernel command line: reboot=w coherent_pool=1M 8250.nr_uarts=1 pci=pcie_bus_safe cgroup_disable=memory numa_policy=interleave nvme.max_host_mem_size_mb=0  numa=fake=8 system_heap.max_order=0 iommu_dma_numa_policy=interleave smsc95xx.macaddr=2C:CF:67:47:14:A6 vc_mem.mem_base=0x3fc00000 vc_mem.mem_size=0x40000000  dwc_otg.lpm_enable=0 rootfstype=ext4 rootwait dwc_otg.lpm_enable=0 rootwait console=null quiet splash vt.global_cursor_default=0 consoleblank=0 cgroup_enable=memory   root=UUID=ba1eadef-643f-4296-91e4-f996ec03c715  firmware_class.path=/var/lib/docker/volumes/extra-firmware/_data
+1970-01-01T05:30:39+05:30 <browser> xorg-server 2:21.1.16-1.3+deb13u1 (https://www.debian.org/support) 
+1970-01-01T05:30:39+05:30 <browser> Current version of pixman: 0.44.0
+1970-01-01T05:30:39+05:30 <browser> 	Before reporting problems, check http://wiki.x.org
+1970-01-01T05:30:39+05:30 <browser> 	to make sure that you have the latest version.
+1970-01-01T05:30:39+05:30 <browser> Markers: (--) probed, (**) from config file, (==) default setting,
+1970-01-01T05:30:39+05:30 <browser> 	(++) from command line, (!!) notice, (II) informational,
+1970-01-01T05:30:39+05:30 <browser> 	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+1970-01-01T05:30:39+05:30 <browser> (==) Log file: "/var/log/Xorg.1.log", Time: Thu Jan  1 00:00:39 1970
+1970-01-01T05:30:39+05:30 <browser> (==) Using config directory: "/etc/X11/xorg.conf.d"
+1970-01-01T05:30:39+05:30 <browser> (==) Using system config directory "/usr/share/X11/xorg.conf.d"
+1970-01-01T05:30:43+05:30 <browser> --- List Input Devices ---
+1970-01-01T05:30:43+05:30 <browser> â¡ Virtual core pointer                    	id=2	[master pointer  (3)]
+1970-01-01T05:30:43+05:30 <browser> â   â³ Virtual core XTEST pointer              	id=4	[slave  pointer  (2)]
+1970-01-01T05:30:43+05:30 <browser> â   â³ Instant USB Optical Mouse               	id=9	[slave  pointer  (2)]
+1970-01-01T05:30:43+05:30 <browser> â£ Virtual core keyboard                   	id=3	[master keyboard (2)]
+1970-01-01T05:30:43+05:30 <browser>     â³ Virtual core XTEST keyboard             	id=5	[slave  keyboard (3)]
+1970-01-01T05:30:43+05:30 <browser>     â³   USB Keyboard                          	id=6	[slave  keyboard (3)]
+1970-01-01T05:30:43+05:30 <browser>     â³   USB Keyboard System Control           	id=7	[slave  keyboard (3)]
+1970-01-01T05:30:43+05:30 <browser>     â³   USB Keyboard Consumer Control         	id=8	[slave  keyboard (3)]
+1970-01-01T05:30:43+05:30 <browser>     â³ pwr_button                              	id=10	[slave  keyboard (3)]
+1970-01-01T05:30:43+05:30 <browser>     â³ vc4-hdmi-0                              	id=11	[slave  keyboard (3)]
+1970-01-01T05:30:43+05:30 <browser>     â³ vc4-hdmi-1                              	id=12	[slave  keyboard (3)]
+1970-01-01T05:30:43+05:30 <browser> ----- End of List --------
+1970-01-01T05:30:43+05:30 <browser> Detecting window size from framebuffer
+1970-01-01T05:30:43+05:30 <browser> Window size detected as 1920,1080
+1970-01-01T05:30:43+05:30 Supervisor starting
+1970-01-01T05:30:45+05:30 <browser> Installed browser version: Chromium 143.0.7499.40 built on Debian GNU/Linux 13 (trixie)
+1970-01-01T05:30:47+05:30 <browser> Browser API running on port: 5011
+1970-01-01T05:30:47+05:30 <browser> Using LAUNCH_URL: http://localhost:5000
+1970-01-01T05:30:47+05:30 <browser> Enabling GPU
+1970-01-01T05:30:47+05:30 <browser> Disabling KIOSK mode
+1970-01-01T05:30:47+05:30 <browser> Starting Chromium with flags: --disable-features=TranslateUI,--disable-component-extensions-with-background-pages,--disable-background-networking,--disable-sync,--metrics-recording-only,--disable-default-apps,--no-default-browser-check,--no-first-run,--disable-backgrounding-occluded-windows,--disable-renderer-backgrounding,--disable-background-timer-throttling,--force-fieldtrials=*BackgroundTracing/default/,--window-size=1920,1080,--window-position=0,0,--autoplay-policy=no-user-gesture-required,--noerrdialogs,--disable-session-crashed-bubble,--check-for-update-interval=31536000,--disable-dev-shm-usage,--enable-zero-copy,--num-raster-threads=4,--ignore-gpu-blocklist,--enable-gpu-rasterization,--enable-features=Vulkan
+1970-01-01T05:30:47+05:30 <browser> Displaying URL: http://localhost:5000
+2026-03-28T20:23:51+05:30 <browser> Chromium remote debugging tools running on port: 35173
+2026-03-28T20:23:57+05:30 <ecoeye-app> [2026-03-28 14:53:57 +0000] [125] [ERROR] Exception in worker process
+2026-03-28T20:23:57+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:23:57+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:23:57+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:23:57+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:23:57+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:23:57+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:23:57+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:23:57+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:23:57+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:23:57+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:23:57+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:23:57+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:23:57+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:23:57+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:23:57+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:23:57+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:23:57+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:23:57+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:23:57+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:23:57+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:23:57+05:30 <ecoeye-app> [2026-03-28 14:53:57 +0000] [125] [INFO] Worker exiting (pid: 125)
+2026-03-28T20:23:58+05:30 <ecoeye-app> [2026-03-28 14:53:58 +0000] [1] [ERROR] Worker (pid:125) exited with code 3
+2026-03-28T20:23:58+05:30 <ecoeye-app> [2026-03-28 14:53:58 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:23:58+05:30 <ecoeye-app> [2026-03-28 14:53:58 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:23:59+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:23:59+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:24:00+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:24:00+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:24:00+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:24:00+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:24:00+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:24:00+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:24:00+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:24:00+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:24:00+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:24:00+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:24:00+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:24:00+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:24:00+05:30 <ecoeye-app> [2026-03-28 14:54:00 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:24:00+05:30 <ecoeye-app> [2026-03-28 14:54:00 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:24:00+05:30 <ecoeye-app> [2026-03-28 14:54:00 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:24:00+05:30 <ecoeye-app> [2026-03-28 14:54:00 +0000] [93] [INFO] Booting worker with pid: 93
+2026-03-28T20:24:01+05:30 Downloading delta for image 'registry2.balena-cloud.com/v2/1813028bceb6946561619be098e93b6a@sha256:b595124377ba7b5d9040c4b92b4ada9f2978fafdbb09dfe6d2503841c5523711'
+2026-03-28T20:24:12+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:24:13+05:30 Restarting service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:24:11+05:30 <ecoeye-app> [2026-03-28 14:54:11 +0000] [93] [ERROR] Exception in worker process
+2026-03-28T20:24:11+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:24:11+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:24:11+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:24:11+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:24:11+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:24:11+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:24:11+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:24:11+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:24:11+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:24:11+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:24:11+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:24:11+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:24:11+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:24:11+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:24:11+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:24:11+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:24:11+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:24:11+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:24:11+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:11+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:24:11+05:30 <ecoeye-app> [2026-03-28 14:54:11 +0000] [93] [INFO] Worker exiting (pid: 93)
+2026-03-28T20:24:12+05:30 <ecoeye-app> [2026-03-28 14:54:12 +0000] [1] [ERROR] Worker (pid:93) exited with code 3
+2026-03-28T20:24:12+05:30 <ecoeye-app> [2026-03-28 14:54:12 +0000] [1] [ERROR] Shutting down: Master
+2026-03-28T20:24:12+05:30 <ecoeye-app> [2026-03-28 14:54:12 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2026-03-28T20:24:13+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:24:13+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:24:13+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:24:13+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:24:13+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:24:13+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:24:13+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:24:13+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:24:13+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:24:13+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:24:13+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:24:13+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:24:13+05:30 <ecoeye-app> [2026-03-28 14:54:13 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:24:13+05:30 <ecoeye-app> [2026-03-28 14:54:13 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:24:13+05:30 <ecoeye-app> [2026-03-28 14:54:13 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:24:13+05:30 <ecoeye-app> [2026-03-28 14:54:13 +0000] [92] [INFO] Booting worker with pid: 92
+2026-03-28T20:24:17+05:30 Downloaded image 'registry2.balena-cloud.com/v2/1813028bceb6946561619be098e93b6a@sha256:b595124377ba7b5d9040c4b92b4ada9f2978fafdbb09dfe6d2503841c5523711'
+2026-03-28T20:24:17+05:30 Taking update locks
+2026-03-28T20:24:17+05:30 Killing service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:24:17+05:30 <ecoeye-app> [2026-03-28 14:54:17 +0000] [1] [INFO] Handling signal: term
+2026-03-28T20:24:18+05:30 Deleting image 'registry2.balena-cloud.com/v2/cc77bb23182bab13668350e87838a647@sha256:56e706e0c407f86cd9449782410aa85f8a46281651e26a3c061585d24529d745'
+2026-03-28T20:24:18+05:30 Deleted image 'registry2.balena-cloud.com/v2/cc77bb23182bab13668350e87838a647@sha256:56e706e0c407f86cd9449782410aa85f8a46281651e26a3c061585d24529d745'
+2026-03-28T20:24:18+05:30 <ecoeye-app> [2026-03-28 14:54:18 +0000] [92] [ERROR] Exception in worker process
+2026-03-28T20:24:18+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2026-03-28T20:24:18+05:30 <ecoeye-app>     worker.init_process()
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/gthread.py", line 95, in init_process
+2026-03-28T20:24:18+05:30 <ecoeye-app>     super().init_process()
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2026-03-28T20:24:18+05:30 <ecoeye-app>     self.load_wsgi()
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2026-03-28T20:24:18+05:30 <ecoeye-app>     self.wsgi = self.app.wsgi()
+2026-03-28T20:24:18+05:30 <ecoeye-app>                 ^^^^^^^^^^^^^^^
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2026-03-28T20:24:18+05:30 <ecoeye-app>     self.callable = self.load()
+2026-03-28T20:24:18+05:30 <ecoeye-app>                     ^^^^^^^^^^^
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2026-03-28T20:24:18+05:30 <ecoeye-app>     return self.load_wsgiapp()
+2026-03-28T20:24:18+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2026-03-28T20:24:18+05:30 <ecoeye-app>     return util.import_app(self.app_uri)
+2026-03-28T20:24:18+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2026-03-28T20:24:18+05:30 <ecoeye-app>     mod = importlib.import_module(module)
+2026-03-28T20:24:18+05:30 <ecoeye-app>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2026-03-28T20:24:18+05:30 <ecoeye-app>     return _bootstrap._gcd_import(name[level:], package, level)
+2026-03-28T20:24:18+05:30 <ecoeye-app>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2026-03-28T20:24:18+05:30 <ecoeye-app>   File "/app/app.py", line 33, in <module>
+2026-03-28T20:24:18+05:30 <ecoeye-app>     TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+2026-03-28T20:24:18+05:30 <ecoeye-app>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-03-28T20:24:18+05:30 <ecoeye-app> ValueError: invalid literal for int() with base 10: '${TOKEN_TTL_SECONDS:-28800}'
+2026-03-28T20:24:18+05:30 <ecoeye-app> [2026-03-28 14:54:18 +0000] [92] [INFO] Worker exiting (pid: 92)
+2026-03-28T20:24:19+05:30 <ecoeye-app> [2026-03-28 14:54:19 +0000] [1] [ERROR] Worker (pid:92) exited with code 3
+2026-03-28T20:24:19+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 224, in run
+2026-03-28T20:24:19+05:30 <ecoeye-app>     handler()
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 257, in handle_term
+2026-03-28T20:24:19+05:30 <ecoeye-app>     raise StopIteration
+2026-03-28T20:24:19+05:30 <ecoeye-app> StopIteration
+2026-03-28T20:24:19+05:30 <ecoeye-app> 
+2026-03-28T20:24:19+05:30 <ecoeye-app> During handling of the above exception, another exception occurred:
+2026-03-28T20:24:19+05:30 <ecoeye-app> 
+2026-03-28T20:24:19+05:30 <ecoeye-app> Traceback (most recent call last):
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/bin/gunicorn", line 8, in <module>
+2026-03-28T20:24:19+05:30 <ecoeye-app>     sys.exit(run())
+2026-03-28T20:24:19+05:30 <ecoeye-app>              ^^^^^
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 67, in run
+2026-03-28T20:24:19+05:30 <ecoeye-app>     WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 236, in run
+2026-03-28T20:24:19+05:30 <ecoeye-app>     super().run()
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/app/base.py", line 72, in run
+2026-03-28T20:24:19+05:30 <ecoeye-app>     Arbiter(self).run()
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 227, in run
+2026-03-28T20:24:19+05:30 <ecoeye-app>     self.halt()
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 342, in halt
+2026-03-28T20:24:19+05:30 <ecoeye-app>     self.stop()
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 396, in stop
+2026-03-28T20:24:19+05:30 <ecoeye-app>     time.sleep(0.1)
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 242, in handle_chld
+2026-03-28T20:24:19+05:30 <ecoeye-app>     self.reap_workers()
+2026-03-28T20:24:19+05:30 <ecoeye-app>   File "/usr/local/lib/python3.11/site-packages/gunicorn/arbiter.py", line 530, in reap_workers
+2026-03-28T20:24:19+05:30 <ecoeye-app>     raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+2026-03-28T20:24:19+05:30 <ecoeye-app> gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+2026-03-28T20:24:19+05:30 Service exited 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:24:19+05:30 Killed service 'ecoeye-app sha256:6818b274618078d1813ebb65cb411694c904f20edcda9ad0887b7bfa9e1ebfd7'
+2026-03-28T20:24:20+05:30 Deleting image 'registry2.balena-cloud.com/v2/3f68d636b5a22a3c0f094cf058159445@sha256:92631dc6e7d065397c2d55cf61e3d1c067d0a90e7b73fd2813064f9d276df3cf'
+2026-03-28T20:24:20+05:30 Deleted image 'registry2.balena-cloud.com/v2/3f68d636b5a22a3c0f094cf058159445@sha256:92631dc6e7d065397c2d55cf61e3d1c067d0a90e7b73fd2813064f9d276df3cf'
+2026-03-28T20:24:21+05:30 Installing service 'ecoeye-app sha256:96c6e595e48124343c7b1b099a5a64b7cdeafee6efe454050ca22bd007abf945'
+2026-03-28T20:24:22+05:30 Installed service 'ecoeye-app sha256:96c6e595e48124343c7b1b099a5a64b7cdeafee6efe454050ca22bd007abf945'
+2026-03-28T20:24:22+05:30 Starting service 'ecoeye-app sha256:96c6e595e48124343c7b1b099a5a64b7cdeafee6efe454050ca22bd007abf945'
+2026-03-28T20:24:22+05:30 Started service 'ecoeye-app sha256:96c6e595e48124343c7b1b099a5a64b7cdeafee6efe454050ca22bd007abf945'
+2026-03-28T20:24:22+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:24:22+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:24:22+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:24:22+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:24:22+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:24:22+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:24:22+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:24:22+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:24:22+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:24:22+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:24:22+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:24:22+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:24:23+05:30 Releasing update locks
+2026-03-28T20:24:23+05:30 <ecoeye-app> [2026-03-28 14:54:23 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:24:23+05:30 <ecoeye-app> [2026-03-28 14:54:23 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:24:23+05:30 <ecoeye-app> [2026-03-28 14:54:23 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:24:23+05:30 <ecoeye-app> [2026-03-28 14:54:23 +0000] [93] [INFO] Booting worker with pid: 93
+2026-03-28T20:30:23+05:30 <browser> user.max_user_namespaces = 10000
+2026-03-28T20:30:23+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:30:23+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:30:23+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:30:23+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:30:23+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:30:23+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:30:23+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:30:23+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:30:23+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:30:23+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:30:23+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:30:23+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:30:24+05:30 <browser> Running balena base image entrypoint...
+1970-01-01T05:30:40+05:30 <browser> setting xserver-xorg-legacy/xwrapper/allowed_users from configuration file
+1970-01-01T05:30:40+05:30 <browser> balenaLabs browser version: 2.12.0
+1970-01-01T05:30:40+05:30 <browser> Setting CPU Scaling Governor to 'performance'
+1970-01-01T05:30:40+05:30 <browser> Disabling cursor
+1970-01-01T05:30:40+05:30 <browser> Raspberry Pi 5 detected, injecting X.org config
+1970-01-01T05:30:40+05:30 <browser> unix_chkpwd[112]: account chromium has password changed in future
+1970-01-01T05:30:40+05:30 <ecoeye-app> [1970-01-01 00:00:40 +0000] [1] [INFO] Starting gunicorn 22.0.0
+1970-01-01T05:30:40+05:30 <ecoeye-app> [1970-01-01 00:00:40 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+1970-01-01T05:30:40+05:30 <ecoeye-app> [1970-01-01 00:00:40 +0000] [1] [INFO] Using worker: gthread
+1970-01-01T05:30:40+05:30 <ecoeye-app> [1970-01-01 00:00:40 +0000] [125] [INFO] Booting worker with pid: 125
+1970-01-01T05:30:40+05:30 <browser> xauth: (stdin):1:  bad display name "6a319cd:2" in "add" command
+1970-01-01T05:30:40+05:30 <browser> 
+1970-01-01T05:30:41+05:30 <browser> 
+1970-01-01T05:30:41+05:30 <browser> X.Org X Server 1.21.1.16
+1970-01-01T05:30:41+05:30 <browser> X Protocol Version 11, Revision 0
+1970-01-01T05:30:41+05:30 <browser> Current Operating System: Linux 6a319cd 6.12.61-v8-16k #1 SMP PREEMPT Tue Dec  9 15:09:13 UTC 2025 aarch64
+1970-01-01T05:30:41+05:30 <browser> Kernel command line: reboot=w coherent_pool=1M 8250.nr_uarts=1 pci=pcie_bus_safe cgroup_disable=memory numa_policy=interleave nvme.max_host_mem_size_mb=0  numa=fake=8 system_heap.max_order=0 iommu_dma_numa_policy=interleave smsc95xx.macaddr=2C:CF:67:47:14:A6 vc_mem.mem_base=0x3fc00000 vc_mem.mem_size=0x40000000  dwc_otg.lpm_enable=0 rootfstype=ext4 rootwait dwc_otg.lpm_enable=0 rootwait console=null quiet splash vt.global_cursor_default=0 consoleblank=0 cgroup_enable=memory   root=UUID=ba1eadef-643f-4296-91e4-f996ec03c715  firmware_class.path=/var/lib/docker/volumes/extra-firmware/_data
+1970-01-01T05:30:41+05:30 <browser> xorg-server 2:21.1.16-1.3+deb13u1 (https://www.debian.org/support) 
+1970-01-01T05:30:41+05:30 <browser> Current version of pixman: 0.44.0
+1970-01-01T05:30:41+05:30 <browser> 	Before reporting problems, check http://wiki.x.org
+1970-01-01T05:30:41+05:30 <browser> 	to make sure that you have the latest version.
+1970-01-01T05:30:41+05:30 <browser> Markers: (--) probed, (**) from config file, (==) default setting,
+1970-01-01T05:30:41+05:30 <browser> 	(++) from command line, (!!) notice, (II) informational,
+1970-01-01T05:30:41+05:30 <browser> 	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+1970-01-01T05:30:41+05:30 <browser> (==) Log file: "/var/log/Xorg.2.log", Time: Thu Jan  1 00:00:41 1970
+1970-01-01T05:30:41+05:30 <browser> (==) Using config directory: "/etc/X11/xorg.conf.d"
+1970-01-01T05:30:41+05:30 <browser> (==) Using system config directory "/usr/share/X11/xorg.conf.d"
+1970-01-01T05:30:45+05:30 <browser> --- List Input Devices ---
+1970-01-01T05:30:45+05:30 <browser> â¡ Virtual core pointer                    	id=2	[master pointer  (3)]
+1970-01-01T05:30:45+05:30 <browser> â   â³ Virtual core XTEST pointer              	id=4	[slave  pointer  (2)]
+1970-01-01T05:30:45+05:30 <browser> â   â³ Instant USB Optical Mouse               	id=9	[slave  pointer  (2)]
+1970-01-01T05:30:45+05:30 <browser> â£ Virtual core keyboard                   	id=3	[master keyboard (2)]
+1970-01-01T05:30:45+05:30 <browser>     â³ Virtual core XTEST keyboard             	id=5	[slave  keyboard (3)]
+1970-01-01T05:30:45+05:30 <browser>     â³   USB Keyboard                          	id=6	[slave  keyboard (3)]
+1970-01-01T05:30:45+05:30 <browser>     â³   USB Keyboard System Control           	id=7	[slave  keyboard (3)]
+1970-01-01T05:30:45+05:30 <browser>     â³   USB Keyboard Consumer Control         	id=8	[slave  keyboard (3)]
+1970-01-01T05:30:45+05:30 <browser>     â³ pwr_button                              	id=10	[slave  keyboard (3)]
+1970-01-01T05:30:45+05:30 <browser>     â³ vc4-hdmi-0                              	id=11	[slave  keyboard (3)]
+1970-01-01T05:30:45+05:30 <browser>     â³ vc4-hdmi-1                              	id=12	[slave  keyboard (3)]
+1970-01-01T05:30:45+05:30 <browser> ----- End of List --------
+1970-01-01T05:30:45+05:30 <browser> Detecting window size from framebuffer
+1970-01-01T05:30:45+05:30 <browser> Window size detected as 1920,1080
+1970-01-01T05:30:45+05:30 Supervisor starting
+1970-01-01T05:30:47+05:30 <browser> Installed browser version: Chromium 143.0.7499.40 built on Debian GNU/Linux 13 (trixie)
+1970-01-01T05:30:48+05:30 <browser> Browser API running on port: 5011
+1970-01-01T05:30:48+05:30 <browser> Using LAUNCH_URL: http://localhost:5000
+1970-01-01T05:30:48+05:30 <browser> Enabling GPU
+1970-01-01T05:30:48+05:30 <browser> Disabling KIOSK mode
+1970-01-01T05:30:48+05:30 <browser> Starting Chromium with flags: --disable-features=TranslateUI,--disable-component-extensions-with-background-pages,--disable-background-networking,--disable-sync,--metrics-recording-only,--disable-default-apps,--no-default-browser-check,--no-first-run,--disable-backgrounding-occluded-windows,--disable-renderer-backgrounding,--disable-background-timer-throttling,--force-fieldtrials=*BackgroundTracing/default/,--window-size=1920,1080,--window-position=0,0,--autoplay-policy=no-user-gesture-required,--noerrdialogs,--disable-session-crashed-bubble,--check-for-update-interval=31536000,--disable-dev-shm-usage,--enable-zero-copy,--num-raster-threads=4,--ignore-gpu-blocklist,--enable-gpu-rasterization,--enable-features=Vulkan
+1970-01-01T05:30:48+05:30 <browser> Displaying URL: http://localhost:5000
+2026-03-28T20:32:54+05:30 <browser> Chromium remote debugging tools running on port: 35173
+2026-03-28T20:33:02+05:30 Downloading delta for image 'registry2.balena-cloud.com/v2/f3f4733cfca0ac0808e5bd6bc584b6bb@sha256:3d2fcb5c68519aa409078fdc1b5b6de58d16f395f499feccc309d9ce9429d2a1'
+2026-03-28T20:33:17+05:30 Taking update locks
+2026-03-28T20:33:17+05:30 Killing service 'ecoeye-app sha256:96c6e595e48124343c7b1b099a5a64b7cdeafee6efe454050ca22bd007abf945'
+2026-03-28T20:33:17+05:30 Killing service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:33:17+05:30 <ecoeye-app> [2026-03-28 15:03:17 +0000] [1] [INFO] Handling signal: term
+2026-03-28T20:33:17+05:30 <ecoeye-app> [2026-03-28 15:03:17 +0000] [125] [INFO] Worker exiting (pid: 125)
+2026-03-28T20:33:19+05:30 Service exited 'ecoeye-app sha256:96c6e595e48124343c7b1b099a5a64b7cdeafee6efe454050ca22bd007abf945'
+2026-03-28T20:33:19+05:30 <ecoeye-app> [2026-03-28 15:03:19 +0000] [1] [INFO] Shutting down: Master
+2026-03-28T20:33:19+05:30 Killed service 'ecoeye-app sha256:96c6e595e48124343c7b1b099a5a64b7cdeafee6efe454050ca22bd007abf945'
+2026-03-28T20:33:20+05:30 Deleting image 'registry2.balena-cloud.com/v2/1813028bceb6946561619be098e93b6a@sha256:b595124377ba7b5d9040c4b92b4ada9f2978fafdbb09dfe6d2503841c5523711'
+2026-03-28T20:33:20+05:30 Deleted image 'registry2.balena-cloud.com/v2/1813028bceb6946561619be098e93b6a@sha256:b595124377ba7b5d9040c4b92b4ada9f2978fafdbb09dfe6d2503841c5523711'
+2026-03-28T20:33:21+05:30 Installing service 'ecoeye-app sha256:48ef1ed04cd2b021b1e3609c1f160b0697fa12f74f4d906e13585f9790005585'
+2026-03-28T20:33:21+05:30 Installed service 'ecoeye-app sha256:48ef1ed04cd2b021b1e3609c1f160b0697fa12f74f4d906e13585f9790005585'
+2026-03-28T20:33:21+05:30 Starting service 'ecoeye-app sha256:48ef1ed04cd2b021b1e3609c1f160b0697fa12f74f4d906e13585f9790005585'
+2026-03-28T20:33:22+05:30 Started service 'ecoeye-app sha256:48ef1ed04cd2b021b1e3609c1f160b0697fa12f74f4d906e13585f9790005585'
+2026-03-28T20:33:17+05:30 Downloaded image 'registry2.balena-cloud.com/v2/f3f4733cfca0ac0808e5bd6bc584b6bb@sha256:3d2fcb5c68519aa409078fdc1b5b6de58d16f395f499feccc309d9ce9429d2a1'
+2026-03-28T20:33:22+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:33:22+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:33:22+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:33:22+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:33:22+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:33:22+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:33:22+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:33:22+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:33:22+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:33:22+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:33:22+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:33:22+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:33:22+05:30 <ecoeye-app> [2026-03-28 15:03:22 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:33:22+05:30 <ecoeye-app> [2026-03-28 15:03:22 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:33:22+05:30 <ecoeye-app> [2026-03-28 15:03:22 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:33:22+05:30 <ecoeye-app> [2026-03-28 15:03:22 +0000] [92] [INFO] Booting worker with pid: 92
+2026-03-28T20:33:28+05:30 Killed service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:33:29+05:30 Deleting image 'registry2.balena-cloud.com/v2/e75449b032ec1a5e0b19f4d772e7e9d9@sha256:56e706e0c407f86cd9449782410aa85f8a46281651e26a3c061585d24529d745'
+2026-03-28T20:33:29+05:30 Deleted image 'registry2.balena-cloud.com/v2/e75449b032ec1a5e0b19f4d772e7e9d9@sha256:56e706e0c407f86cd9449782410aa85f8a46281651e26a3c061585d24529d745'
+2026-03-28T20:33:30+05:30 Installing service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:33:30+05:30 Installed service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:33:30+05:30 Starting service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:33:30+05:30 Started service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:33:30+05:30 <browser> user.max_user_namespaces = 10000
+2026-03-28T20:33:31+05:30 <browser> Running balena base image entrypoint...
+2026-03-28T20:33:31+05:30 <browser> setting xserver-xorg-legacy/xwrapper/allowed_users from configuration file
+2026-03-28T20:33:31+05:30 Releasing update locks
+2026-03-28T20:33:31+05:30 <browser> balenaLabs browser version: 2.12.0
+2026-03-28T20:33:31+05:30 <browser> Setting CPU Scaling Governor to 'performance'
+2026-03-28T20:33:31+05:30 <browser> Enabling cursor
+2026-03-28T20:33:31+05:30 <browser> Raspberry Pi 5 detected, injecting X.org config
+2026-03-28T20:33:31+05:30 <browser> xauth:  file /home/chromium/.Xauthority does not exist
+2026-03-28T20:33:31+05:30 <browser> xauth: (stdin):1:  bad display name "6a319cd:0" in "add" command
+2026-03-28T20:33:31+05:30 <browser> 
+2026-03-28T20:33:31+05:30 <browser> 
+2026-03-28T20:33:31+05:30 <browser> X.Org X Server 1.21.1.16
+2026-03-28T20:33:31+05:30 <browser> X Protocol Version 11, Revision 0
+2026-03-28T20:33:31+05:30 <browser> Current Operating System: Linux 6a319cd 6.12.61-v8-16k #1 SMP PREEMPT Tue Dec  9 15:09:13 UTC 2025 aarch64
+2026-03-28T20:33:31+05:30 <browser> Kernel command line: reboot=w coherent_pool=1M 8250.nr_uarts=1 pci=pcie_bus_safe cgroup_disable=memory numa_policy=interleave nvme.max_host_mem_size_mb=0  numa=fake=8 system_heap.max_order=0 iommu_dma_numa_policy=interleave smsc95xx.macaddr=2C:CF:67:47:14:A6 vc_mem.mem_base=0x3fc00000 vc_mem.mem_size=0x40000000  dwc_otg.lpm_enable=0 rootfstype=ext4 rootwait dwc_otg.lpm_enable=0 rootwait console=null quiet splash vt.global_cursor_default=0 consoleblank=0 cgroup_enable=memory   root=UUID=ba1eadef-643f-4296-91e4-f996ec03c715  firmware_class.path=/var/lib/docker/volumes/extra-firmware/_data
+2026-03-28T20:33:31+05:30 <browser> xorg-server 2:21.1.16-1.3+deb13u1 (https://www.debian.org/support) 
+2026-03-28T20:33:31+05:30 <browser> Current version of pixman: 0.44.0
+2026-03-28T20:33:31+05:30 <browser> 	Before reporting problems, check http://wiki.x.org
+2026-03-28T20:33:31+05:30 <browser> 	to make sure that you have the latest version.
+2026-03-28T20:33:31+05:30 <browser> Markers: (--) probed, (**) from config file, (==) default setting,
+2026-03-28T20:33:31+05:30 <browser> 	(++) from command line, (!!) notice, (II) informational,
+2026-03-28T20:33:31+05:30 <browser> 	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+2026-03-28T20:33:31+05:30 <browser> (==) Log file: "/var/log/Xorg.0.log", Time: Sat Mar 28 15:03:31 2026
+2026-03-28T20:33:31+05:30 <browser> (==) Using config directory: "/etc/X11/xorg.conf.d"
+2026-03-28T20:33:31+05:30 <browser> (==) Using system config directory "/usr/share/X11/xorg.conf.d"
+2026-03-28T20:33:32+05:30 <browser> --- List Input Devices ---
+2026-03-28T20:33:32+05:30 <browser> â¡ Virtual core pointer                    	id=2	[master pointer  (3)]
+2026-03-28T20:33:32+05:30 <browser> â   â³ Virtual core XTEST pointer              	id=4	[slave  pointer  (2)]
+2026-03-28T20:33:32+05:30 <browser> â   â³ Instant USB Optical Mouse               	id=9	[slave  pointer  (2)]
+2026-03-28T20:33:32+05:30 <browser> â£ Virtual core keyboard                   	id=3	[master keyboard (2)]
+2026-03-28T20:33:32+05:30 <browser>     â³ Virtual core XTEST keyboard             	id=5	[slave  keyboard (3)]
+2026-03-28T20:33:32+05:30 <browser>     â³   USB Keyboard                          	id=6	[slave  keyboard (3)]
+2026-03-28T20:33:32+05:30 <browser>     â³   USB Keyboard System Control           	id=7	[slave  keyboard (3)]
+2026-03-28T20:33:32+05:30 <browser>     â³   USB Keyboard Consumer Control         	id=8	[slave  keyboard (3)]
+2026-03-28T20:33:32+05:30 <browser>     â³ pwr_button                              	id=10	[slave  keyboard (3)]
+2026-03-28T20:33:32+05:30 <browser>     â³ vc4-hdmi-0                              	id=11	[slave  keyboard (3)]
+2026-03-28T20:33:32+05:30 <browser>     â³ vc4-hdmi-1                              	id=12	[slave  keyboard (3)]
+2026-03-28T20:33:32+05:30 <browser> ----- End of List --------
+2026-03-28T20:33:32+05:30 <browser> Detecting window size from framebuffer
+2026-03-28T20:33:32+05:30 <browser> Window size detected as 1920,1080
+2026-03-28T20:33:32+05:30 <browser> Installed browser version: Chromium 143.0.7499.40 built on Debian GNU/Linux 13 (trixie)
+2026-03-28T20:33:32+05:30 <browser> Browser API running on port: 5011
+2026-03-28T20:33:32+05:30 <browser> Using LAUNCH_URL: http://localhost:5000
+2026-03-28T20:33:32+05:30 <browser> Enabling GPU
+2026-03-28T20:33:32+05:30 <browser> Disabling KIOSK mode
+2026-03-28T20:33:32+05:30 <browser> Starting Chromium with flags: --disable-features=TranslateUI,--disable-component-extensions-with-background-pages,--disable-background-networking,--disable-sync,--metrics-recording-only,--disable-default-apps,--no-default-browser-check,--no-first-run,--disable-backgrounding-occluded-windows,--disable-renderer-backgrounding,--disable-background-timer-throttling,--force-fieldtrials=*BackgroundTracing/default/,--window-size=1920,1080,--window-position=0,0,--autoplay-policy=no-user-gesture-required,--noerrdialogs,--disable-session-crashed-bubble,--check-for-update-interval=31536000,--disable-dev-shm-usage,--enable-zero-copy,--num-raster-threads=4,--ignore-gpu-blocklist,--enable-gpu-rasterization,--enable-features=Vulkan
+2026-03-28T20:33:32+05:30 <browser> Displaying URL: http://localhost:5000
+2026-03-28T20:33:28+05:30 Service exited 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:33:33+05:30 <browser> Chromium remote debugging tools running on port: 35173
+2026-03-28T20:43:17+05:30 <browser> user.max_user_namespaces = 10000
+2026-03-28T20:43:17+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:43:17+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:43:17+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:43:17+05:30 <browser> Running balena base image entrypoint...
+2026-03-28T20:43:17+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:43:17+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:43:17+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:43:17+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:43:17+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:43:17+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:43:17+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:43:17+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:43:17+05:30 <ecoeye-app> Starting Gunicorn...
+2026-03-28T20:43:20+05:30 <browser> setting xserver-xorg-legacy/xwrapper/allowed_users from configuration file
+2026-03-28T20:43:20+05:30 <browser> balenaLabs browser version: 2.12.0
+2026-03-28T20:43:20+05:30 <browser> Setting CPU Scaling Governor to 'performance'
+2026-03-28T20:43:20+05:30 <browser> Enabling cursor
+2026-03-28T20:43:20+05:30 <browser> Raspberry Pi 5 detected, injecting X.org config
+2026-03-28T20:43:20+05:30 <ecoeye-app> [2026-03-28 15:13:20 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:43:20+05:30 <ecoeye-app> [2026-03-28 15:13:20 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+2026-03-28T20:43:20+05:30 <ecoeye-app> [2026-03-28 15:13:20 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:43:20+05:30 <ecoeye-app> [2026-03-28 15:13:20 +0000] [125] [INFO] Booting worker with pid: 125
+2026-03-28T20:43:21+05:30 <browser> xauth: (stdin):1:  bad display name "6a319cd:1" in "add" command
+2026-03-28T20:43:21+05:30 <browser> 
+2026-03-28T20:43:20+05:30 <browser> 
+2026-03-28T20:43:20+05:30 <browser> X.Org X Server 1.21.1.16
+2026-03-28T20:43:20+05:30 <browser> X Protocol Version 11, Revision 0
+2026-03-28T20:43:20+05:30 <browser> Current Operating System: Linux 6a319cd 6.12.61-v8-16k #1 SMP PREEMPT Tue Dec  9 15:09:13 UTC 2025 aarch64
+2026-03-28T20:43:20+05:30 <browser> Kernel command line: reboot=w coherent_pool=1M 8250.nr_uarts=1 pci=pcie_bus_safe cgroup_disable=memory numa_policy=interleave nvme.max_host_mem_size_mb=0  numa=fake=8 system_heap.max_order=0 iommu_dma_numa_policy=interleave smsc95xx.macaddr=2C:CF:67:47:14:A6 vc_mem.mem_base=0x3fc00000 vc_mem.mem_size=0x40000000  dwc_otg.lpm_enable=0 rootfstype=ext4 rootwait dwc_otg.lpm_enable=0 rootwait console=null quiet splash vt.global_cursor_default=0 consoleblank=0 cgroup_enable=memory   root=UUID=ba1eadef-643f-4296-91e4-f996ec03c715  firmware_class.path=/var/lib/docker/volumes/extra-firmware/_data
+2026-03-28T20:43:20+05:30 <browser> xorg-server 2:21.1.16-1.3+deb13u1 (https://www.debian.org/support) 
+2026-03-28T20:43:20+05:30 <browser> Current version of pixman: 0.44.0
+2026-03-28T20:43:20+05:30 <browser> 	Before reporting problems, check http://wiki.x.org
+2026-03-28T20:43:20+05:30 <browser> 	to make sure that you have the latest version.
+2026-03-28T20:43:20+05:30 <browser> Markers: (--) probed, (**) from config file, (==) default setting,
+2026-03-28T20:43:20+05:30 <browser> 	(++) from command line, (!!) notice, (II) informational,
+2026-03-28T20:43:20+05:30 <browser> 	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+2026-03-28T20:43:20+05:30 <browser> (==) Log file: "/var/log/Xorg.1.log", Time: Sat Mar 28 15:13:20 2026
+2026-03-28T20:43:20+05:30 <browser> (==) Using config directory: "/etc/X11/xorg.conf.d"
+2026-03-28T20:43:20+05:30 <browser> (==) Using system config directory "/usr/share/X11/xorg.conf.d"
+2026-03-28T20:43:24+05:30 <browser> --- List Input Devices ---
+2026-03-28T20:43:24+05:30 <browser> â¡ Virtual core pointer                    	id=2	[master pointer  (3)]
+2026-03-28T20:43:24+05:30 <browser> â   â³ Virtual core XTEST pointer              	id=4	[slave  pointer  (2)]
+2026-03-28T20:43:24+05:30 <browser> â   â³ Instant USB Optical Mouse               	id=9	[slave  pointer  (2)]
+2026-03-28T20:43:24+05:30 <browser> â£ Virtual core keyboard                   	id=3	[master keyboard (2)]
+2026-03-28T20:43:24+05:30 <browser>     â³ Virtual core XTEST keyboard             	id=5	[slave  keyboard (3)]
+2026-03-28T20:43:24+05:30 <browser>     â³   USB Keyboard                          	id=6	[slave  keyboard (3)]
+2026-03-28T20:43:24+05:30 <browser>     â³   USB Keyboard System Control           	id=7	[slave  keyboard (3)]
+2026-03-28T20:43:24+05:30 <browser>     â³   USB Keyboard Consumer Control         	id=8	[slave  keyboard (3)]
+2026-03-28T20:43:24+05:30 <browser>     â³ pwr_button                              	id=10	[slave  keyboard (3)]
+2026-03-28T20:43:24+05:30 <browser>     â³ vc4-hdmi-0                              	id=11	[slave  keyboard (3)]
+2026-03-28T20:43:24+05:30 <browser>     â³ vc4-hdmi-1                              	id=12	[slave  keyboard (3)]
+2026-03-28T20:43:24+05:30 <browser> ----- End of List --------
+2026-03-28T20:43:24+05:30 <browser> Detecting window size from framebuffer
+2026-03-28T20:43:24+05:30 <browser> Window size detected as 1920,1080
+2026-03-28T20:43:26+05:30 Downloading delta for image 'registry2.balena-cloud.com/v2/49c4e48142c876d6697043d6b4e83afc@sha256:8c12e0b7af166e4bfa4081fd4e0e530f11e6707a61428fd7ccf517c9ecc74e96'
+2026-03-28T20:43:26+05:30 <browser> Installed browser version: Chromium 143.0.7499.40 built on Debian GNU/Linux 13 (trixie)
+2026-03-28T20:43:28+05:30 <browser> Browser API running on port: 5011
+2026-03-28T20:43:28+05:30 <browser> Using LAUNCH_URL: http://localhost:5000
+2026-03-28T20:43:28+05:30 <browser> Enabling GPU
+2026-03-28T20:43:28+05:30 <browser> Disabling KIOSK mode
+2026-03-28T20:43:28+05:30 <browser> Starting Chromium with flags: --disable-features=TranslateUI,--disable-component-extensions-with-background-pages,--disable-background-networking,--disable-sync,--metrics-recording-only,--disable-default-apps,--no-default-browser-check,--no-first-run,--disable-backgrounding-occluded-windows,--disable-renderer-backgrounding,--disable-background-timer-throttling,--force-fieldtrials=*BackgroundTracing/default/,--window-size=1920,1080,--window-position=0,0,--autoplay-policy=no-user-gesture-required,--noerrdialogs,--disable-session-crashed-bubble,--check-for-update-interval=31536000,--disable-dev-shm-usage,--enable-zero-copy,--num-raster-threads=4,--ignore-gpu-blocklist,--enable-gpu-rasterization,--enable-features=Vulkan
+2026-03-28T20:43:28+05:30 <browser> Displaying URL: http://localhost:5000
+2026-03-28T20:43:24+05:30 Supervisor starting
+2026-03-28T20:43:32+05:30 <browser> Chromium remote debugging tools running on port: 35173
+2026-03-28T20:44:18+05:30 Taking update locks
+2026-03-28T20:44:18+05:30 Killing service 'ecoeye-app sha256:48ef1ed04cd2b021b1e3609c1f160b0697fa12f74f4d906e13585f9790005585'
+2026-03-28T20:44:18+05:30 Killing service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:44:18+05:30 <ecoeye-app> [2026-03-28 15:14:18 +0000] [1] [INFO] Handling signal: term
+2026-03-28T20:44:19+05:30 <ecoeye-app> [2026-03-28 15:14:19 +0000] [125] [INFO] Worker exiting (pid: 125)
+2026-03-28T20:44:20+05:30 <ecoeye-app> [2026-03-28 15:14:20 +0000] [1] [INFO] Shutting down: Master
+2026-03-28T20:44:20+05:30 Service exited 'ecoeye-app sha256:48ef1ed04cd2b021b1e3609c1f160b0697fa12f74f4d906e13585f9790005585'
+2026-03-28T20:44:20+05:30 Killed service 'ecoeye-app sha256:48ef1ed04cd2b021b1e3609c1f160b0697fa12f74f4d906e13585f9790005585'
+2026-03-28T20:44:21+05:30 Deleting image 'registry2.balena-cloud.com/v2/f3f4733cfca0ac0808e5bd6bc584b6bb@sha256:3d2fcb5c68519aa409078fdc1b5b6de58d16f395f499feccc309d9ce9429d2a1'
+2026-03-28T20:44:21+05:30 Deleted image 'registry2.balena-cloud.com/v2/f3f4733cfca0ac0808e5bd6bc584b6bb@sha256:3d2fcb5c68519aa409078fdc1b5b6de58d16f395f499feccc309d9ce9429d2a1'
+2026-03-28T20:44:22+05:30 Installing service 'ecoeye-app sha256:0869f9e26c641e927470080bfd9556e0d8a4f7fd44fdf4492edc868ee11e8ab2'
+2026-03-28T20:44:22+05:30 Installed service 'ecoeye-app sha256:0869f9e26c641e927470080bfd9556e0d8a4f7fd44fdf4492edc868ee11e8ab2'
+2026-03-28T20:44:22+05:30 Starting service 'ecoeye-app sha256:0869f9e26c641e927470080bfd9556e0d8a4f7fd44fdf4492edc868ee11e8ab2'
+2026-03-28T20:44:22+05:30 Started service 'ecoeye-app sha256:0869f9e26c641e927470080bfd9556e0d8a4f7fd44fdf4492edc868ee11e8ab2'
+2026-03-28T20:44:22+05:30 <ecoeye-app> --- Starting EcoEYE ---
+2026-03-28T20:44:22+05:30 <ecoeye-app> Current directory: /app
+2026-03-28T20:44:22+05:30 <ecoeye-app> Files in /app:
+2026-03-28T20:44:22+05:30 <ecoeye-app> CAMERA_FEEDS_INTEGRATION.md  docker-compose.yml     firmware/
+2026-03-28T20:44:22+05:30 <ecoeye-app> DEPLOYMENT_TEST_REPORT.txt   docs/		    framing.py
+2026-03-28T20:44:22+05:30 <ecoeye-app> DOCKER_README.md	     ecoeye_framed_yolo.py  frontend/
+2026-03-28T20:44:22+05:30 <ecoeye-app> Dockerfile		     ecoeye_test.py	    requirements.txt
+2026-03-28T20:44:22+05:30 <ecoeye-app> README.md		     ecoeye_test1.py	    scripts/
+2026-03-28T20:44:22+05:30 <ecoeye-app> app.py			     ecoeye_test2.py	    test_routes.py
+2026-03-28T20:44:22+05:30 <ecoeye-app> control-app/		     ecoeye_test3.py	    yolo26n.pt
+2026-03-28T20:44:22+05:30 <ecoeye-app> data/			     ecoeye_test4.py
+2026-03-28T20:44:22+05:30 <ecoeye-app> Starting Gunicorn on port 80...
+2026-03-28T20:44:18+05:30 Downloaded image 'registry2.balena-cloud.com/v2/49c4e48142c876d6697043d6b4e83afc@sha256:8c12e0b7af166e4bfa4081fd4e0e530f11e6707a61428fd7ccf517c9ecc74e96'
+2026-03-28T20:44:23+05:30 <ecoeye-app> [2026-03-28 15:14:23 +0000] [1] [INFO] Starting gunicorn 22.0.0
+2026-03-28T20:44:23+05:30 <ecoeye-app> [2026-03-28 15:14:23 +0000] [1] [INFO] Listening at: http://0.0.0.0:80 (1)
+2026-03-28T20:44:23+05:30 <ecoeye-app> [2026-03-28 15:14:23 +0000] [1] [INFO] Using worker: gthread
+2026-03-28T20:44:23+05:30 <ecoeye-app> [2026-03-28 15:14:23 +0000] [92] [INFO] Booting worker with pid: 92
+2026-03-28T20:44:28+05:30 Killed service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:44:29+05:30 Deleting image 'registry2.balena-cloud.com/v2/a429b587d1c796ceb1d8d2270ae5fee0@sha256:56e706e0c407f86cd9449782410aa85f8a46281651e26a3c061585d24529d745'
+2026-03-28T20:44:29+05:30 Deleted image 'registry2.balena-cloud.com/v2/a429b587d1c796ceb1d8d2270ae5fee0@sha256:56e706e0c407f86cd9449782410aa85f8a46281651e26a3c061585d24529d745'
+2026-03-28T20:44:30+05:30 Installing service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:44:30+05:30 Installed service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:44:30+05:30 Starting service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:44:30+05:30 Started service 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:44:30+05:30 <browser> user.max_user_namespaces = 10000
+2026-03-28T20:44:31+05:30 <browser> Running balena base image entrypoint...
+2026-03-28T20:44:31+05:30 Releasing update locks
+2026-03-28T20:44:31+05:30 <browser> setting xserver-xorg-legacy/xwrapper/allowed_users from configuration file
+2026-03-28T20:44:31+05:30 <browser> balenaLabs browser version: 2.12.0
+2026-03-28T20:44:31+05:30 <browser> Setting CPU Scaling Governor to 'performance'
+2026-03-28T20:44:31+05:30 <browser> Enabling cursor
+2026-03-28T20:44:31+05:30 <browser> Raspberry Pi 5 detected, injecting X.org config
+2026-03-28T20:44:31+05:30 <browser> xauth:  file /home/chromium/.Xauthority does not exist
+2026-03-28T20:44:31+05:30 <browser> xauth: (stdin):1:  bad display name "6a319cd:0" in "add" command
+2026-03-28T20:44:31+05:30 <browser> 
+2026-03-28T20:44:31+05:30 <browser> 
+2026-03-28T20:44:31+05:30 <browser> X.Org X Server 1.21.1.16
+2026-03-28T20:44:31+05:30 <browser> X Protocol Version 11, Revision 0
+2026-03-28T20:44:31+05:30 <browser> Current Operating System: Linux 6a319cd 6.12.61-v8-16k #1 SMP PREEMPT Tue Dec  9 15:09:13 UTC 2025 aarch64
+2026-03-28T20:44:31+05:30 <browser> Kernel command line: reboot=w coherent_pool=1M 8250.nr_uarts=1 pci=pcie_bus_safe cgroup_disable=memory numa_policy=interleave nvme.max_host_mem_size_mb=0  numa=fake=8 system_heap.max_order=0 iommu_dma_numa_policy=interleave smsc95xx.macaddr=2C:CF:67:47:14:A6 vc_mem.mem_base=0x3fc00000 vc_mem.mem_size=0x40000000  dwc_otg.lpm_enable=0 rootfstype=ext4 rootwait dwc_otg.lpm_enable=0 rootwait console=null quiet splash vt.global_cursor_default=0 consoleblank=0 cgroup_enable=memory   root=UUID=ba1eadef-643f-4296-91e4-f996ec03c715  firmware_class.path=/var/lib/docker/volumes/extra-firmware/_data
+2026-03-28T20:44:31+05:30 <browser> xorg-server 2:21.1.16-1.3+deb13u1 (https://www.debian.org/support) 
+2026-03-28T20:44:31+05:30 <browser> Current version of pixman: 0.44.0
+2026-03-28T20:44:31+05:30 <browser> 	Before reporting problems, check http://wiki.x.org
+2026-03-28T20:44:31+05:30 <browser> 	to make sure that you have the latest version.
+2026-03-28T20:44:31+05:30 <browser> Markers: (--) probed, (**) from config file, (==) default setting,
+2026-03-28T20:44:31+05:30 <browser> 	(++) from command line, (!!) notice, (II) informational,
+2026-03-28T20:44:31+05:30 <browser> 	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+2026-03-28T20:44:31+05:30 <browser> (==) Log file: "/var/log/Xorg.0.log", Time: Sat Mar 28 15:14:31 2026
+2026-03-28T20:44:31+05:30 <browser> (==) Using config directory: "/etc/X11/xorg.conf.d"
+2026-03-28T20:44:31+05:30 <browser> (==) Using system config directory "/usr/share/X11/xorg.conf.d"
+2026-03-28T20:44:32+05:30 <browser> --- List Input Devices ---
+2026-03-28T20:44:32+05:30 <browser> â¡ Virtual core pointer                    	id=2	[master pointer  (3)]
+2026-03-28T20:44:32+05:30 <browser> â   â³ Virtual core XTEST pointer              	id=4	[slave  pointer  (2)]
+2026-03-28T20:44:32+05:30 <browser> â   â³ Instant USB Optical Mouse               	id=9	[slave  pointer  (2)]
+2026-03-28T20:44:32+05:30 <browser> â£ Virtual core keyboard                   	id=3	[master keyboard (2)]
+2026-03-28T20:44:32+05:30 <browser>     â³ Virtual core XTEST keyboard             	id=5	[slave  keyboard (3)]
+2026-03-28T20:44:32+05:30 <browser>     â³   USB Keyboard                          	id=6	[slave  keyboard (3)]
+2026-03-28T20:44:32+05:30 <browser>     â³   USB Keyboard System Control           	id=7	[slave  keyboard (3)]
+2026-03-28T20:44:32+05:30 <browser>     â³   USB Keyboard Consumer Control         	id=8	[slave  keyboard (3)]
+2026-03-28T20:44:32+05:30 <browser>     â³ pwr_button                              	id=10	[slave  keyboard (3)]
+2026-03-28T20:44:32+05:30 <browser>     â³ vc4-hdmi-0                              	id=11	[slave  keyboard (3)]
+2026-03-28T20:44:32+05:30 <browser>     â³ vc4-hdmi-1                              	id=12	[slave  keyboard (3)]
+2026-03-28T20:44:32+05:30 <browser> ----- End of List --------
+2026-03-28T20:44:32+05:30 <browser> Detecting window size from framebuffer
+2026-03-28T20:44:32+05:30 <browser> Window size detected as 1920,1080
+2026-03-28T20:44:32+05:30 <browser> Installed browser version: Chromium 143.0.7499.40 built on Debian GNU/Linux 13 (trixie)
+2026-03-28T20:44:32+05:30 <browser> Browser API running on port: 5011
+2026-03-28T20:44:32+05:30 <browser> Using LAUNCH_URL: http://localhost:80
+2026-03-28T20:44:32+05:30 <browser> Enabling GPU
+2026-03-28T20:44:32+05:30 <browser> Disabling KIOSK mode
+2026-03-28T20:44:32+05:30 <browser> Starting Chromium with flags: --disable-features=TranslateUI,--disable-component-extensions-with-background-pages,--disable-background-networking,--disable-sync,--metrics-recording-only,--disable-default-apps,--no-default-browser-check,--no-first-run,--disable-backgrounding-occluded-windows,--disable-renderer-backgrounding,--disable-background-timer-throttling,--force-fieldtrials=*BackgroundTracing/default/,--window-size=1920,1080,--window-position=0,0,--autoplay-policy=no-user-gesture-required,--noerrdialogs,--disable-session-crashed-bubble,--check-for-update-interval=31536000,--disable-dev-shm-usage,--enable-zero-copy,--num-raster-threads=4,--ignore-gpu-blocklist,--enable-gpu-rasterization,--enable-features=Vulkan
+2026-03-28T20:44:32+05:30 <browser> Displaying URL: http://localhost:80
+2026-03-28T20:44:28+05:30 Service exited 'browser sha256:74d780e3bd6335c8451a43d592c653d3d98af65ec922184de4c638baa2e48c60'
+2026-03-28T20:44:33+05:30 <browser> Chromium remote debugging tools running on port: 35173
