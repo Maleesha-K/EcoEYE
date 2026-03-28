@@ -1,4 +1,4 @@
-import base64
+﻿import base64
 import hashlib
 import hmac
 import json
@@ -11,6 +11,7 @@ from pathlib import Path
 
 import cv2
 import requests
+import ecoeye_framed_yolo
 from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 from paho.mqtt import client as mqtt_client
@@ -26,6 +27,7 @@ DATA_DIR = APP_DIR / "data"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 AUTH_FILE = DATA_DIR / "auth.json"
 SETUP_FILE = DATA_DIR / "setup.json"
+CAMERA_CONFIG_FILE = DATA_DIR / "camera-config.json"
 
 APP_VERSION = "3.0.0"
 TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
@@ -110,6 +112,19 @@ DEFAULT_SETUP = {
             "fan": "auto",
         },
     },
+}
+
+DEFAULT_CAMERA_CONFIG = {
+    "cameraCount": 2,
+    "cameraSources": [
+        "http://10.10.1.8:8080/video",
+        "http://10.10.1.9:8080/video"
+    ],
+    "slotSeconds": 1.0,
+    "tileWidth": 480,
+    "tileHeight": 270,
+    "decisionIntervalSec": 1.0,
+    "confidenceThreshold": 0.4
 }
 
 RUNTIME_STATE = {
@@ -221,6 +236,68 @@ def load_auth_doc():
 
 def save_auth_doc(auth_doc):
     AUTH_FILE.write_text(json.dumps(auth_doc, indent=2), encoding="utf-8")
+
+
+def load_camera_config():
+    ensure_data_files()
+    try:
+        config = json.loads(CAMERA_CONFIG_FILE.read_text(encoding="utf-8"))
+        merged = dict(DEFAULT_CAMERA_CONFIG)
+        merged.update(config)
+        return merged
+    except Exception:
+        return dict(DEFAULT_CAMERA_CONFIG)
+
+
+def save_camera_config(config_doc):
+    CAMERA_CONFIG_FILE.write_text(json.dumps(config_doc, indent=2), encoding="utf-8")
+
+
+def validate_camera_config(config):
+    if not isinstance(config, dict):
+        return "Config must be an object"
+
+    required_keys = [
+        "cameraCount",
+        "cameraSources",
+        "slotSeconds",
+        "tileWidth",
+        "tileHeight",
+        "decisionIntervalSec",
+        "confidenceThreshold",
+    ]
+    for key in required_keys:
+        if key not in config:
+            return f"Missing required key: {key}"
+
+    if not isinstance(config.get("cameraSources"), list) or len(config.get("cameraSources", [])) < 1:
+        return "cameraSources must be a non-empty list"
+
+    if int(config.get("cameraCount", 0)) != len(config.get("cameraSources", [])):
+        return "cameraCount must match number of cameraSources"
+
+    return None
+
+
+def restart_stream_processor():
+    global STREAM_THREAD, STREAM_STOP_EVENT
+
+    if STREAM_STOP_EVENT is not None:
+        STREAM_STOP_EVENT.set()
+
+    if STREAM_THREAD is not None and STREAM_THREAD.is_alive():
+        STREAM_THREAD.join(timeout=2.0)
+
+    with STREAM_LOCK:
+        STREAM_STATE["jpeg"] = None
+        STREAM_STATE["zoneStatus"] = {}
+        STREAM_STATE["cameraStatus"] = {}
+        STREAM_STATE["lastFrameAt"] = 0.0
+        STREAM_STATE["runtimeError"] = ""
+
+    STREAM_THREAD = None
+    STREAM_STOP_EVENT = None
+    ensure_stream_runtime_started()
 
 
 def load_settings():
@@ -927,6 +1004,37 @@ def camera_zone_status():
         }
     ), 200
 
+@app.route("/api/camera/config", methods=["GET"])
+def get_camera_config():
+    config = load_camera_config()
+    return jsonify(config), 200
+
+
+@app.route("/api/camera/config", methods=["PUT"])
+def update_camera_config():
+    try:
+        payload = request.get_json(silent=True) or {}
+
+        error_msg = validate_camera_config(payload)
+        if error_msg:
+            return jsonify({"error": error_msg}), 400
+
+        save_camera_config(payload)
+
+        ecoeye_framed_yolo.CAMERA_COUNT = int(payload.get("cameraCount", 1))
+        ecoeye_framed_yolo.CAMERA_SOURCES = list(payload.get("cameraSources", []))
+        ecoeye_framed_yolo.SLOT_SECONDS = float(payload.get("slotSeconds", 1.0))
+        ecoeye_framed_yolo.TILE_WIDTH = int(payload.get("tileWidth", 480))
+        ecoeye_framed_yolo.TILE_HEIGHT = int(payload.get("tileHeight", 270))
+        ecoeye_framed_yolo.DECISION_INTERVAL_SEC = float(payload.get("decisionIntervalSec", 1.0))
+        ecoeye_framed_yolo.CONFIDENCE_THRESHOLD = float(payload.get("confidenceThreshold", 0.4))
+
+        restart_stream_processor()
+
+        return jsonify({"success": True, "config": payload}), 200
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
 
 @app.route("/")
 def serve_root():
@@ -962,3 +1070,10 @@ if __name__ == "__main__":
     print("=" * 60)
 
     app.run(host=bind_host, port=bind_port, debug=False)
+
+
+
+
+
+
+

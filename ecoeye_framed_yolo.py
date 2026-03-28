@@ -5,10 +5,11 @@ import numpy as np
 from ultralytics import YOLO
 
 # Camera source configuration (phone URLs / RTSP URLs)
-CAMERA_COUNT = 2
+CAMERA_COUNT = 3
 CAMERA_SOURCES = [
-    "http://10.10.30.18:8080/video",
-    "http://10.10.19.254:8080/video",
+    "http://10.10.1.8:8080/video",
+    "http://10.10.1.9:8080/video",
+    "http://10.10.1.10:8080/video",
 ]
 
 # Framing behavior
