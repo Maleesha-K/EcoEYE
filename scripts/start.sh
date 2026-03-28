@@ -11,5 +11,5 @@ if [ "$UDEV" == "1" ]; then
     udevadm trigger
 fi
 
-echo "Starting Gunicorn..."
-exec gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 8 --timeout 120 app:app
+echo "Starting Gunicorn on port ${APP_PORT:-80}..."
+exec gunicorn --bind 0.0.0.0:${APP_PORT:-80} --workers 1 --threads 8 --timeout 120 app:app
