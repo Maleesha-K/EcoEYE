@@ -162,6 +162,12 @@ DISCOVERY_STATE = {
 DISCOVERY_THREAD = None
 DISCOVERY_STOP_EVENT = None
 
+CAMERA_DISCOVERY_STATE = {
+    "discoveredCameras": {}, # ip -> {lastSeen}
+}
+CAMERA_DISCOVERY_THREAD = None
+CAMERA_DISCOVERY_STOP_EVENT = None
+
 
 def _stream_state_callback(frame_bgr, zone_status, camera_status):
     ok, encoded = cv2.imencode(".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
@@ -420,6 +426,68 @@ def _discovery_worker(stop_event):
             time.sleep(1.0)
 
     sock.close()
+
+
+def ensure_camera_discovery_started():
+    global CAMERA_DISCOVERY_THREAD, CAMERA_DISCOVERY_STOP_EVENT
+
+    if CAMERA_DISCOVERY_THREAD is not None and CAMERA_DISCOVERY_THREAD.is_alive():
+        return
+
+    CAMERA_DISCOVERY_STOP_EVENT = threading.Event()
+    CAMERA_DISCOVERY_THREAD = threading.Thread(target=_camera_discovery_worker, args=(CAMERA_DISCOVERY_STOP_EVENT,), daemon=True)
+    CAMERA_DISCOVERY_THREAD.start()
+
+
+def _camera_discovery_worker(stop_event):
+    """
+    Scans the local subnet for devices with port 554 (RTSP) open.
+    """
+    print("RTSP Camera Discovery Scanner started")
+    
+    while not stop_event.is_set():
+        try:
+            # 1. Determine local subnet
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            
+            # Simple heuristic for common home/hotspot subnets
+            # e.g. 172.20.10.x or 192.168.1.x
+            prefix = ".".join(local_ip.split(".")[:-1]) + ".*"
+            
+            # We use a shell command to ping sweep or just a fast loop
+            # For simplicity and reliability in various environments, 
+            # let's use a loop with short timeouts.
+            base_prefix = ".".join(local_ip.split(".")[:-1]) + "."
+            
+            for i in range(1, 255):
+                if stop_event.is_set():
+                    break
+                    
+                target_ip = base_prefix + str(i)
+                if target_ip == local_ip:
+                    continue
+                
+                # Check port 554
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(0.05) # Very fast scan
+                    result = s.connect_ex((target_ip, 554))
+                    if result == 0:
+                        with RUNTIME_LOCK:
+                            CAMERA_DISCOVERY_STATE["discoveredCameras"][target_ip] = {
+                                "ip": target_ip,
+                                "lastSeen": time.time()
+                            }
+            
+            # Scan finished, wait before next full scan
+            for _ in range(300): # 5 minutes
+                if stop_event.is_set():
+                    break
+                time.sleep(1)
+                
+        except Exception as ex:
+            print(f"Camera discovery error: {ex}")
+            time.sleep(5.0)
 
 
 def load_settings():
@@ -1226,6 +1294,20 @@ def get_discovered_devices():
         return jsonify({"devices": list(fresh.values())}), 200
 
 
+@app.route("/api/camera/discovered", methods=["GET"])
+@require_auth
+def get_discovered_cameras():
+    now = time.time()
+    with RUNTIME_LOCK:
+        # Filter out cameras not seen in the last 15 minutes
+        fresh = {
+            ip: data for ip, data in CAMERA_DISCOVERY_STATE["discoveredCameras"].items()
+            if now - data["lastSeen"] < 900
+        }
+        CAMERA_DISCOVERY_STATE["discoveredCameras"] = fresh
+        return jsonify({"cameras": list(fresh.values())}), 200
+
+
 @app.route("/api/camera/video-feed", methods=["GET"])
 def camera_video_feed():
     ensure_stream_runtime_started()
@@ -1322,6 +1404,7 @@ if __name__ == "__main__":
 
     ensure_control_bridge_started()
     ensure_discovery_started()
+    ensure_camera_discovery_started()
     app.run(host=bind_host, port=bind_port, debug=False)
 
 
