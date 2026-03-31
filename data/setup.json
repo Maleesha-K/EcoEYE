@@ -28,7 +28,7 @@
         "name": "Optimized ESP32",
         "kind": "light",
         "protocol": "socket-udp",
-        "target": "192.168.1.50:4210",
+        "target": "172.20.10.2:4210",
         "onCommand": "0x15",
         "offCommand": "0x14",
         "meta": {
