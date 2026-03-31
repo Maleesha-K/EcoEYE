@@ -11,6 +11,7 @@ from pathlib import Path
 
 import cv2
 import requests
+import socket
 import subprocess
 import ecoeye_framed_yolo
 from flask import Flask, Response, jsonify, request, send_from_directory
@@ -151,6 +152,9 @@ STREAM_STATE = {
 }
 STREAM_THREAD = None
 STREAM_STOP_EVENT = None
+
+CONTROL_SYNC_THREAD = None
+CONTROL_SYNC_STOP_EVENT = None
 
 
 def _stream_state_callback(frame_bgr, zone_status, camera_status):
@@ -302,6 +306,58 @@ def restart_stream_processor():
     STREAM_THREAD = None
     STREAM_STOP_EVENT = None
     ensure_stream_runtime_started()
+    ensure_control_bridge_started()
+
+
+def ensure_control_bridge_started():
+    global CONTROL_SYNC_THREAD, CONTROL_SYNC_STOP_EVENT
+
+    if CONTROL_SYNC_THREAD is not None and CONTROL_SYNC_THREAD.is_alive():
+        return
+
+    CONTROL_SYNC_STOP_EVENT = threading.Event()
+    CONTROL_SYNC_THREAD = threading.Thread(target=_control_bridge_worker, args=(CONTROL_SYNC_STOP_EVENT,), daemon=True)
+    CONTROL_SYNC_THREAD.start()
+
+
+def _control_bridge_worker(stop_event):
+    """
+    Background worker that bridges CV detections to the control logic.
+    Periodically checks STREAM_STATE and dispatches necessary commands.
+    """
+    print("CV-to-Control Bridge thread started")
+    last_decision_time = 0.0
+
+    while not stop_event.is_set():
+        try:
+            setup_doc = load_setup()
+            interval = float(setup_doc.get("occupancyDecisionIntervalSec", 1.0))
+            now = time.time()
+
+            if now - last_decision_time < interval:
+                time.sleep(0.1)
+                continue
+
+            with STREAM_LOCK:
+                zone_status = dict(STREAM_STATE.get("zoneStatus", {}))
+                camera_status = dict(STREAM_STATE.get("cameraStatus", {}))
+
+            if not zone_status:
+                time.sleep(0.5)
+                continue
+
+            for cam_id, zones in zone_status.items():
+                camera_online = camera_status.get(cam_id, {}).get("connected", True)
+                apply_zone_event_to_runtime(setup_doc, cam_id, zones, camera_online=camera_online)
+
+            evaluate_and_dispatch(setup_doc)
+            last_decision_time = now
+
+        except Exception as ex:
+            print(f"Error in control_bridge_worker: {ex}")
+            time.sleep(2.0)
+
+        time.sleep(0.2)
 
 
 def load_settings():
@@ -369,8 +425,8 @@ def validate_setup(payload):
             return f"Setup must include a list: {key}"
 
     valid_source_types = {"rtsp", "http-mjpeg", "usb", "file"}
-    valid_zones = {"left", "right"}
-    valid_protocols = {"mqtt", "http"}
+    valid_zones = {"left", "right", "top_left", "top_right", "bottom_left", "bottom_right"}
+    valid_protocols = {"mqtt", "http", "socket-udp", "socket-tcp"}
 
     camera_ids = set()
     for cam in payload["cameras"]:
@@ -623,6 +679,44 @@ def dispatch_to_device(device, payload, setup_doc):
                 result = MQTT_CLIENT.publish(target, body, qos=qos, retain=retain)
                 if result.rc != mqtt_client.MQTT_ERR_SUCCESS:
                     raise RuntimeError(f"mqtt publish rc={result.rc}")
+
+            elif protocol in ["socket-udp", "socket-tcp"]:
+                # Protocol: "socket-udp" or "socket-tcp"
+                # Target: "ip:port"
+                if ":" not in target:
+                    raise ValueError("Target must be in ip:port format for socket protocols")
+                
+                host_ip, port_str = target.split(":", 1)
+                host_port = int(port_str)
+                
+                # Handle payload: if it's a hex string (0x...), convert to bytes
+                # Otherwise, if it's a dict, convert to json. If it's a string, use it.
+                if isinstance(payload, str) and payload.startswith("0x"):
+                    try:
+                        # Strip 0x and decode
+                        hex_data = payload[2:]
+                        if len(hex_data) % 2 != 0:
+                            hex_data = "0" + hex_data
+                        data_to_send = bytes.fromhex(hex_data)
+                    except ValueError:
+                        data_to_send = payload.encode("utf-8")
+                elif isinstance(payload, (dict, list)):
+                    data_to_send = json.dumps(payload).encode("utf-8")
+                else:
+                    data_to_send = str(payload).encode("utf-8")
+
+                if protocol == "socket-udp":
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sock.settimeout(1.5)
+                    sock.sendto(data_to_send, (host_ip, host_port))
+                    sock.close()
+                else: # socket-tcp
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(2.0)
+                    sock.connect((host_ip, host_port))
+                    sock.sendall(data_to_send)
+                    sock.close()
+
             else:
                 response = requests.post(target, json=payload, timeout=2.5)
                 if response.status_code >= 400:
@@ -1150,6 +1244,7 @@ if __name__ == "__main__":
     print("LAN access enabled. Use board-ip:published-port from same WiFi.")
     print("=" * 60)
 
+    ensure_control_bridge_started()
     app.run(host=bind_host, port=bind_port, debug=False)
 
 

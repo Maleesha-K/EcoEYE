@@ -12,24 +12,44 @@
       "enabled": true
     }
   ],
-  "devices": [
-    {
-      "id": "dev-1",
-      "name": "Lounge Lights",
-      "kind": "light",
-      "protocol": "mqtt",
-      "target": "esp32/lounge/cmd",
-      "onCommand": "{\"power\":\"on\"}",
-      "offCommand": "{\"power\":\"off\"}",
-      "meta": {}
-    }
-  ],
+    "devices": [
+      {
+        "id": "dev-1",
+        "name": "Lounge Lights",
+        "kind": "light",
+        "protocol": "mqtt",
+        "target": "esp32/lounge/cmd",
+        "onCommand": "{\"power\":\"on\"}",
+        "offCommand": "{\"power\":\"off\"}",
+        "meta": {}
+      },
+      {
+        "id": "dev-esp-udp",
+        "name": "Optimized ESP32",
+        "kind": "light",
+        "protocol": "socket-udp",
+        "target": "192.168.1.50:4210",
+        "onCommand": "0x15",
+        "offCommand": "0x14",
+        "meta": {
+          "note": "0x15 is ID 5 state ON, 0x14 is ID 5 state OFF"
+        }
+      }
+    ],
   "zoneMappings": [
     {
       "id": "map-1",
       "cameraId": "cam-1",
       "zone": "left",
       "deviceId": "dev-1",
+      "priority": 1,
+      "mode": "occupancy"
+    },
+    {
+      "id": "map-2",
+      "cameraId": "cam-1",
+      "zone": "right",
+      "deviceId": "dev-esp-udp",
       "priority": 1,
       "mode": "occupancy"
     }
