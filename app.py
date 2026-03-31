@@ -156,6 +156,12 @@ STREAM_STOP_EVENT = None
 CONTROL_SYNC_THREAD = None
 CONTROL_SYNC_STOP_EVENT = None
 
+DISCOVERY_STATE = {
+    "discoveredDevices": {}, # ip -> {id, name, lastSeen}
+}
+DISCOVERY_THREAD = None
+DISCOVERY_STOP_EVENT = None
+
 
 def _stream_state_callback(frame_bgr, zone_status, camera_status):
     ok, encoded = cv2.imencode(".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
@@ -307,6 +313,7 @@ def restart_stream_processor():
     STREAM_STOP_EVENT = None
     ensure_stream_runtime_started()
     ensure_control_bridge_started()
+    ensure_discovery_started()
 
 
 def ensure_control_bridge_started():
@@ -358,6 +365,61 @@ def _control_bridge_worker(stop_event):
             time.sleep(2.0)
 
         time.sleep(0.2)
+
+
+
+def ensure_discovery_started():
+    global DISCOVERY_THREAD, DISCOVERY_STOP_EVENT
+
+    if DISCOVERY_THREAD is not None and DISCOVERY_THREAD.is_alive():
+        return
+
+    DISCOVERY_STOP_EVENT = threading.Event()
+    DISCOVERY_THREAD = threading.Thread(target=_discovery_worker, args=(DISCOVERY_STOP_EVENT,), daemon=True)
+    DISCOVERY_THREAD.start()
+
+
+def _discovery_worker(stop_event):
+    """
+    Listens for UDP broadcast 'Hello' signals from ESP32s on port 4211.
+    Format expected: ESP32-HELLO:<NAME>:<ID>
+    """
+    print("UDP Discovery Listener started on port 4211")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind(("", 4211)) # Listen on all interfaces
+        sock.settimeout(1.0)
+    except Exception as ex:
+        print(f"Failed to bind discovery socket: {ex}")
+        return
+
+    while not stop_event.is_set():
+        try:
+            data, addr = sock.recvfrom(1024)
+            message = data.decode("utf-8").strip()
+            
+            if message.startswith("ESP32-HELLO:"):
+                parts = message.split(":")
+                if len(parts) >= 3:
+                    name = parts[1]
+                    dev_id = parts[2]
+                    ip = addr[0]
+                    
+                    with RUNTIME_LOCK:
+                        DISCOVERY_STATE["discoveredDevices"][ip] = {
+                            "id": dev_id,
+                            "name": name,
+                            "ip": ip,
+                            "lastSeen": time.time()
+                        }
+        except socket.timeout:
+            continue
+        except Exception as ex:
+            print(f"Discovery error: {ex}")
+            time.sleep(1.0)
+
+    sock.close()
 
 
 def load_settings():
@@ -1150,6 +1212,20 @@ def control_runtime():
         ), 200
 
 
+@app.route("/api/devices/discovered", methods=["GET"])
+@require_auth
+def get_discovered_devices():
+    now = time.time()
+    with RUNTIME_LOCK:
+        # Filter out devices not seen in the last 10 minutes
+        fresh = {
+            ip: data for ip, data in DISCOVERY_STATE["discoveredDevices"].items()
+            if now - data["lastSeen"] < 600
+        }
+        DISCOVERY_STATE["discoveredDevices"] = fresh
+        return jsonify({"devices": list(fresh.values())}), 200
+
+
 @app.route("/api/camera/video-feed", methods=["GET"])
 def camera_video_feed():
     ensure_stream_runtime_started()
@@ -1245,6 +1321,7 @@ if __name__ == "__main__":
     print("=" * 60)
 
     ensure_control_bridge_started()
+    ensure_discovery_started()
     app.run(host=bind_host, port=bind_port, debug=False)
 
 
