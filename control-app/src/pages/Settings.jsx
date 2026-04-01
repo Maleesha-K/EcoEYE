@@ -28,6 +28,19 @@ export default function Settings({ token }) {
     const [error, setError] = useState('')
     const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '' })
     const [passwordSaved, setPasswordSaved] = useState(false)
+    const [wifiNetworks, setWifiNetworks] = useState([])
+    const [wifiScanning, setWifiScanning] = useState(false)
+    const [wifiConnecting, setWifiConnecting] = useState(false)
+    const [selectedNetwork, setSelectedNetwork] = useState(null)
+    const [wifiPassword, setWifiPassword] = useState('')
+    const [wifiStatus, setWifiStatus] = useState({ connected: false, ssid: '' })
+    
+    // Camera Discovery
+    const [cameraNetworks, setCameraNetworks] = useState([])
+    const [cameraScanning, setCameraScanning] = useState(false)
+    const [selectedCamera, setSelectedCamera] = useState(null)
+    const [safetyCode, setSafetyCode] = useState('L28DF2D2') // Default provided by user
+    const [showSafetyModal, setShowSafetyModal] = useState(false)
 
     const [config, setConfig] = useState({
         cameraIp: '192.168.1.100',
@@ -79,8 +92,100 @@ export default function Settings({ token }) {
         }
     }
 
+    const loadWifiStatus = async () => {
+        try {
+            const res = await fetch('/api/wifi/status', {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setWifiStatus(data)
+            }
+        } catch (err) {
+            console.error('Failed to load wifi status', err)
+        }
+    }
+
+    const scanWifi = async () => {
+        setWifiScanning(true)
+        setError('')
+        try {
+            const res = await fetch('/api/wifi/scan', {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (!res.ok) throw new Error('Scan failed')
+            const data = await res.json()
+            setWifiNetworks(data)
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setWifiScanning(false)
+        }
+    }
+
+    const connectWifi = async () => {
+        if (!selectedNetwork) return
+        setWifiConnecting(true)
+        setError('')
+        try {
+            const res = await fetch('/api/wifi/connect', {
+                method: 'POST',
+                headers: apiHeaders,
+                body: JSON.stringify({ ssid: selectedNetwork.ssid, password: wifiPassword }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || 'Connection failed')
+            setWifiPassword('')
+            setSelectedNetwork(null)
+            setSaved(true)
+            setTimeout(() => setSaved(false), 3000)
+            loadWifiStatus()
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setWifiConnecting(false)
+        }
+    }
+    
+    const scanCameras = async () => {
+        setCameraScanning(true)
+        setError('')
+        try {
+            const res = await fetch('/api/camera/discovered', {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (!res.ok) throw new Error('Camera scan failed')
+            const data = await res.json()
+            setCameraNetworks(data.cameras || [])
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setCameraScanning(false)
+        }
+    }
+
+    const connectDiscoveredCamera = () => {
+        if (!selectedCamera) return
+        
+        // Construct the RTSP URL using the provided pattern:
+        // rtsp://admin:<SAFETY_CODE>@<IP>:554/cam/realmonitor?channel=1&subtype=0
+        const rtspUrl = `rtsp://admin:${safetyCode}@${selectedCamera.ip}:554/cam/realmonitor?channel=1&subtype=0`
+        
+        handleChange('cameraIp', selectedCamera.ip)
+        handleChange('cameraPort', '554')
+        handleChange('cameraProtocol', 'rtsp')
+        
+        // Let's also suggest saving these changes
+        console.log("Connecting to discovered camera:", rtspUrl)
+        
+        setShowSafetyModal(false)
+        setSelectedCamera(null)
+        setSaved(false)
+    }
+
     useEffect(() => {
         loadSettings()
+        loadWifiStatus()
     }, [])
 
     const handleSave = async () => {
@@ -153,7 +258,41 @@ export default function Settings({ token }) {
                 <div className="settings-section-header">
                     <Camera size={16} />
                     <h3>Camera Configuration</h3>
+                    <button 
+                        className="save-btn" 
+                        onClick={scanCameras} 
+                        disabled={cameraScanning}
+                        style={{ marginLeft: 'auto', padding: '6px 12px', fontSize: '0.8rem' }}
+                    >
+                        <RefreshCw size={12} className={cameraScanning ? 'animate-spin' : ''} />
+                        {cameraScanning ? 'Searching...' : 'Auto-Detect Cameras'}
+                    </button>
                 </div>
+
+                {cameraNetworks.length > 0 && (
+                    <div className="discovery-list" style={{ marginBottom: '20px' }}>
+                        <p className="setting-hint">Detected Cameras on Network:</p>
+                        <div className="wifi-list">
+                            {cameraNetworks.map((cam) => (
+                                <div 
+                                    key={cam.ip} 
+                                    className="wifi-network"
+                                    onClick={() => {
+                                        setSelectedCamera(cam)
+                                        setShowSafetyModal(true)
+                                    }}
+                                >
+                                    <div className="network-info">
+                                        <Camera size={14} />
+                                        <span className="network-ssid">IP Camera at {cam.ip}</span>
+                                    </div>
+                                    <span className="network-signal">RTSP Active</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="settings-grid">
                     <div className="setting-field">
                         <label>Camera IP Address</label>
@@ -216,6 +355,69 @@ export default function Settings({ token }) {
                             onChange={(e) => handleChange('mqttTopic', e.target.value)}
                         />
                     </div>
+                </div>
+            </motion.div>
+
+            {/* WiFi Configuration */}
+            <motion.div className="settings-section glass-card" variants={itemVariants}>
+                <div className="settings-section-header">
+                    <Wifi size={16} />
+                    <h3>WiFi Management</h3>
+                    {wifiStatus.connected && (
+                        <span className="wifi-status-badge">Connected: {wifiStatus.ssid}</span>
+                    )}
+                </div>
+                
+                <div className="wifi-controls">
+                    <button 
+                        className="save-btn" 
+                        onClick={scanWifi} 
+                        disabled={wifiScanning}
+                        style={{ marginBottom: '16px' }}
+                    >
+                        <RefreshCw size={14} className={wifiScanning ? 'animate-spin' : ''} />
+                        {wifiScanning ? 'Scanning...' : 'Scan Networks'}
+                    </button>
+
+                    <div className="wifi-list">
+                        {wifiNetworks.length === 0 && !wifiScanning && (
+                            <p className="setting-hint">Click scan to find networks</p>
+                        )}
+                        {wifiNetworks.map((net) => (
+                            <div 
+                                key={net.ssid} 
+                                className={`wifi-network ${selectedNetwork?.ssid === net.ssid ? 'wifi-network--selected' : ''}`}
+                                onClick={() => setSelectedNetwork(net)}
+                            >
+                                <div className="network-info">
+                                    <Wifi size={14} opacity={parseInt(net.signal) / 100} />
+                                    <span className="network-ssid">{net.ssid}</span>
+                                </div>
+                                <span className="network-signal">{net.bars} ({net.signal}%)</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {selectedNetwork && (
+                        <div className="wifi-connect-form">
+                            <div className="setting-field">
+                                <label>Password for {selectedNetwork.ssid}</label>
+                                <input 
+                                    type="password" 
+                                    placeholder="Enter WiFi Password"
+                                    value={wifiPassword}
+                                    onChange={(e) => setWifiPassword(e.target.value)}
+                                />
+                            </div>
+                            <button 
+                                className="save-btn" 
+                                onClick={connectWifi}
+                                disabled={wifiConnecting}
+                            >
+                                {wifiConnecting ? 'Connecting...' : 'Connect to Network'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </motion.div>
 
@@ -352,6 +554,43 @@ export default function Settings({ token }) {
                     {passwordSaved ? 'Password Updated' : 'Change Password'}
                 </button>
             </motion.div>
+
+            {/* Safety Code Modal */}
+            {showSafetyModal && (
+                <div className="safety-modal-overlay">
+                    <motion.div 
+                        className="safety-modal glass-card"
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                    >
+                        <h3>Camera Secure Connection</h3>
+                        <p className="setting-hint">Enter the Safety Code (Password) for camera at {selectedCamera?.ip}</p>
+                        
+                        <div className="setting-field" style={{ margin: '20px 0' }}>
+                            <label>Safety Code</label>
+                            <div style={{ position: 'relative' }}>
+                                <input 
+                                    type="text" 
+                                    value={safetyCode}
+                                    onChange={(e) => setSafetyCode(e.target.value)}
+                                    placeholder="Enter Camera Password"
+                                    style={{ paddingLeft: '40px' }}
+                                />
+                                <Shield size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+                            </div>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="save-btn" onClick={connectDiscoveredCamera}>
+                                Connect Camera
+                            </button>
+                            <button className="save-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setShowSafetyModal(false)}>
+                                Cancel
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </motion.div>
     )
 }

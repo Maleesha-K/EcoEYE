@@ -1,3 +1,4 @@
+# Build: 2026-04-01-T06-03
 import base64
 import hashlib
 import hmac
@@ -11,6 +12,8 @@ from pathlib import Path
 
 import cv2
 import requests
+import socket
+import subprocess
 import ecoeye_framed_yolo
 from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -30,7 +33,10 @@ SETUP_FILE = DATA_DIR / "setup.json"
 CAMERA_CONFIG_FILE = DATA_DIR / "camera-config.json"
 
 APP_VERSION = "3.0.0"
-TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+try:
+    TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", "28800"))
+except (ValueError, TypeError):
+    TOKEN_TTL_SECONDS = 28800
 TOKEN_SECRET = os.getenv("APP_SECRET", "change-this-secret-on-first-boot")
 STARTED_AT = time.time()
 
@@ -147,6 +153,21 @@ STREAM_STATE = {
 }
 STREAM_THREAD = None
 STREAM_STOP_EVENT = None
+
+CONTROL_SYNC_THREAD = None
+CONTROL_SYNC_STOP_EVENT = None
+
+DISCOVERY_STATE = {
+    "discoveredDevices": {}, # ip -> {id, name, lastSeen}
+}
+DISCOVERY_THREAD = None
+DISCOVERY_STOP_EVENT = None
+
+CAMERA_DISCOVERY_STATE = {
+    "discoveredCameras": {}, # ip -> {lastSeen}
+}
+CAMERA_DISCOVERY_THREAD = None
+CAMERA_DISCOVERY_STOP_EVENT = None
 
 
 def _stream_state_callback(frame_bgr, zone_status, camera_status):
@@ -303,6 +324,183 @@ def restart_stream_processor():
     
     # Start new thread
     ensure_stream_runtime_started()
+    ensure_control_bridge_started()
+    ensure_discovery_started()
+
+
+def ensure_control_bridge_started():
+    global CONTROL_SYNC_THREAD, CONTROL_SYNC_STOP_EVENT
+
+    if CONTROL_SYNC_THREAD is not None and CONTROL_SYNC_THREAD.is_alive():
+        return
+
+    CONTROL_SYNC_STOP_EVENT = threading.Event()
+    CONTROL_SYNC_THREAD = threading.Thread(target=_control_bridge_worker, args=(CONTROL_SYNC_STOP_EVENT,), daemon=True)
+    CONTROL_SYNC_THREAD.start()
+
+
+def _control_bridge_worker(stop_event):
+    """
+    Background worker that bridges CV detections to the control logic.
+    Periodically checks STREAM_STATE and dispatches necessary commands.
+    """
+    print("CV-to-Control Bridge thread started")
+    last_decision_time = 0.0
+
+    while not stop_event.is_set():
+        try:
+            setup_doc = load_setup()
+            interval = float(setup_doc.get("occupancyDecisionIntervalSec", 1.0))
+            now = time.time()
+
+            if now - last_decision_time < interval:
+                time.sleep(0.1)
+                continue
+
+            with STREAM_LOCK:
+                zone_status = dict(STREAM_STATE.get("zoneStatus", {}))
+                camera_status = dict(STREAM_STATE.get("cameraStatus", {}))
+
+            if not zone_status:
+                time.sleep(0.5)
+                continue
+
+            for cam_id, zones in zone_status.items():
+                camera_online = camera_status.get(cam_id, {}).get("connected", True)
+                apply_zone_event_to_runtime(setup_doc, cam_id, zones, camera_online=camera_online)
+
+            evaluate_and_dispatch(setup_doc)
+            last_decision_time = now
+
+        except Exception as ex:
+            print(f"Error in control_bridge_worker: {ex}")
+            time.sleep(2.0)
+
+        time.sleep(0.2)
+
+
+
+def ensure_discovery_started():
+    global DISCOVERY_THREAD, DISCOVERY_STOP_EVENT
+
+    if DISCOVERY_THREAD is not None and DISCOVERY_THREAD.is_alive():
+        return
+
+    DISCOVERY_STOP_EVENT = threading.Event()
+    DISCOVERY_THREAD = threading.Thread(target=_discovery_worker, args=(DISCOVERY_STOP_EVENT,), daemon=True)
+    DISCOVERY_THREAD.start()
+
+
+def _discovery_worker(stop_event):
+    """
+    Listens for UDP broadcast 'Hello' signals from ESP32s on port 4211.
+    Format expected: ESP32-HELLO:<NAME>:<ID>
+    """
+    print("UDP Discovery Listener started on port 4211")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind(("", 4211)) # Listen on all interfaces
+        sock.settimeout(1.0)
+    except Exception as ex:
+        print(f"Failed to bind discovery socket: {ex}")
+        return
+
+    while not stop_event.is_set():
+        try:
+            data, addr = sock.recvfrom(1024)
+            message = data.decode("utf-8").strip()
+            
+            if message.startswith("ESP32-HELLO:"):
+                parts = message.split(":")
+                if len(parts) >= 3:
+                    name = parts[1]
+                    dev_id = parts[2]
+                    ip = addr[0]
+                    
+                    with RUNTIME_LOCK:
+                        DISCOVERY_STATE["discoveredDevices"][ip] = {
+                            "id": dev_id,
+                            "name": name,
+                            "ip": ip,
+                            "lastSeen": time.time()
+                        }
+        except socket.timeout:
+            continue
+        except Exception as ex:
+            print(f"Discovery error: {ex}")
+            time.sleep(1.0)
+
+    sock.close()
+
+
+def ensure_camera_discovery_started():
+    global CAMERA_DISCOVERY_THREAD, CAMERA_DISCOVERY_STOP_EVENT
+
+    if CAMERA_DISCOVERY_THREAD is not None and CAMERA_DISCOVERY_THREAD.is_alive():
+        return
+
+    CAMERA_DISCOVERY_STOP_EVENT = threading.Event()
+    CAMERA_DISCOVERY_THREAD = threading.Thread(target=_camera_discovery_worker, args=(CAMERA_DISCOVERY_STOP_EVENT,), daemon=True)
+    CAMERA_DISCOVERY_THREAD.start()
+
+
+def _camera_discovery_worker(stop_event):
+    """
+    Scans the local subnet for devices with port 554 (RTSP) open.
+    """
+    print("RTSP Camera Discovery Scanner started")
+    
+    while not stop_event.is_set():
+        try:
+            # 1. Determine local subnet
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                # connect to a dummy address to find local interface ip
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+            except Exception:
+                local_ip = "127.0.0.1"
+            finally:
+                s.close()
+            
+            # Simple heuristic for common home/hotspot subnets
+            # e.g. 172.20.10.x or 192.168.1.x
+            prefix = ".".join(local_ip.split(".")[:-1]) + ".*"
+            
+            # We use a shell command to ping sweep or just a fast loop
+            # For simplicity and reliability in various environments, 
+            # let's use a loop with short timeouts.
+            base_prefix = ".".join(local_ip.split(".")[:-1]) + "."
+            
+            for i in range(1, 255):
+                if stop_event.is_set():
+                    break
+                    
+                target_ip = base_prefix + str(i)
+                if target_ip == local_ip:
+                    continue
+                
+                # Check port 554
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(0.05) # Very fast scan
+                    result = s.connect_ex((target_ip, 554))
+                    if result == 0:
+                        with RUNTIME_LOCK:
+                            CAMERA_DISCOVERY_STATE["discoveredCameras"][target_ip] = {
+                                "ip": target_ip,
+                                "lastSeen": time.time()
+                            }
+            
+            # Scan finished, wait before next full scan
+            for _ in range(300): # 5 minutes
+                if stop_event.is_set():
+                    break
+                time.sleep(1)
+                
+        except Exception as ex:
+            print(f"Camera discovery error: {ex}")
+            time.sleep(5.0)
 
 
 def load_settings():
@@ -370,8 +568,8 @@ def validate_setup(payload):
             return f"Setup must include a list: {key}"
 
     valid_source_types = {"rtsp", "http-mjpeg", "usb", "file"}
-    valid_zones = {"left", "right"}
-    valid_protocols = {"mqtt", "http"}
+    valid_zones = {"left", "right", "top_left", "top_right", "bottom_left", "bottom_right"}
+    valid_protocols = {"mqtt", "http", "socket-udp", "socket-tcp"}
 
     camera_ids = set()
     for cam in payload["cameras"]:
@@ -624,6 +822,44 @@ def dispatch_to_device(device, payload, setup_doc):
                 result = MQTT_CLIENT.publish(target, body, qos=qos, retain=retain)
                 if result.rc != mqtt_client.MQTT_ERR_SUCCESS:
                     raise RuntimeError(f"mqtt publish rc={result.rc}")
+
+            elif protocol in ["socket-udp", "socket-tcp"]:
+                # Protocol: "socket-udp" or "socket-tcp"
+                # Target: "ip:port"
+                if ":" not in target:
+                    raise ValueError("Target must be in ip:port format for socket protocols")
+                
+                host_ip, port_str = target.split(":", 1)
+                host_port = int(port_str)
+                
+                # Handle payload: if it's a hex string (0x...), convert to bytes
+                # Otherwise, if it's a dict, convert to json. If it's a string, use it.
+                if isinstance(payload, str) and payload.startswith("0x"):
+                    try:
+                        # Strip 0x and decode
+                        hex_data = payload[2:]
+                        if len(hex_data) % 2 != 0:
+                            hex_data = "0" + hex_data
+                        data_to_send = bytes.fromhex(hex_data)
+                    except ValueError:
+                        data_to_send = payload.encode("utf-8")
+                elif isinstance(payload, (dict, list)):
+                    data_to_send = json.dumps(payload).encode("utf-8")
+                else:
+                    data_to_send = str(payload).encode("utf-8")
+
+                if protocol == "socket-udp":
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sock.settimeout(1.5)
+                    sock.sendto(data_to_send, (host_ip, host_port))
+                    sock.close()
+                else: # socket-tcp
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(2.0)
+                    sock.connect((host_ip, host_port))
+                    sock.sendall(data_to_send)
+                    sock.close()
+
             else:
                 response = requests.post(target, json=payload, timeout=2.5)
                 if response.status_code >= 400:
@@ -813,6 +1049,80 @@ def get_settings():
     return jsonify({"settings": load_settings()}), 200
 
 
+@app.route("/api/wifi/scan", methods=["GET"])
+@require_auth
+def wifi_scan():
+    try:
+        # Rescan first to get fresh results
+        subprocess.run(["nmcli", "device", "wifi", "rescan"], capture_output=True, timeout=10)
+        
+        # Get the list
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,BARS", "device", "wifi", "list"],
+            capture_output=True, text=True, timeout=10
+        )
+        
+        networks = []
+        for line in result.stdout.strip().split("\n"):
+            if not line: continue
+            parts = line.split(":")
+            if len(parts) >= 4:
+                ssid = parts[0]
+                if not ssid: continue # Skip hidden/empty SSIDs
+                networks.append({
+                    "ssid": ssid,
+                    "signal": parts[1],
+                    "security": parts[2],
+                    "bars": parts[3]
+                })
+        
+        # Deduplicate by SSID, keeping strongest signal
+        deduped = {}
+        for n in networks:
+            if n["ssid"] not in deduped or int(n["signal"]) > int(deduped[n["ssid"]]["signal"]):
+                deduped[n["ssid"]] = n
+                
+        return jsonify(list(deduped.values())), 200
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
+
+@app.route("/api/wifi/connect", methods=["POST"])
+@require_auth
+def wifi_connect():
+    payload = request.get_json(silent=True) or {}
+    ssid = payload.get("ssid")
+    password = payload.get("password")
+    
+    if not ssid:
+        return jsonify({"error": "SSID is required"}), 400
+        
+    try:
+        cmd = ["nmcli", "device", "wifi", "connect", ssid]
+        if password:
+            cmd.extend(["password", password])
+            
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            return jsonify({"status": "success", "message": f"Connected to {ssid}"}), 200
+        else:
+            return jsonify({"status": "error", "message": result.stderr or result.stdout}), 400
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
+@app.route("/api/wifi/status", methods=["GET"])
+@require_auth
+def wifi_status():
+    try:
+        result = subprocess.run(["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"], capture_output=True, text=True)
+        for line in result.stdout.strip().split("\n"):
+            if line.startswith("yes:"):
+                return jsonify({"connected": True, "ssid": line.split(":")[1]}), 200
+        return jsonify({"connected": False}), 200
+    except Exception:
+        return jsonify({"connected": False}), 200
+
 @app.route("/api/settings", methods=["PUT"])
 @require_auth
 def update_settings():
@@ -838,6 +1148,11 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required"}), 400
     return jsonify(chatbot_reply(message)), 200
+
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "healthy", "time": time.time()}), 200
 
 
 @app.route("/api/setup", methods=["GET"])
@@ -983,6 +1298,34 @@ def control_runtime():
         ), 200
 
 
+@app.route("/api/devices/discovered", methods=["GET"])
+@require_auth
+def get_discovered_devices():
+    now = time.time()
+    with RUNTIME_LOCK:
+        # Filter out devices not seen in the last 10 minutes
+        fresh = {
+            ip: data for ip, data in DISCOVERY_STATE["discoveredDevices"].items()
+            if now - data["lastSeen"] < 600
+        }
+        DISCOVERY_STATE["discoveredDevices"] = fresh
+        return jsonify({"devices": list(fresh.values())}), 200
+
+
+@app.route("/api/camera/discovered", methods=["GET"])
+@require_auth
+def get_discovered_cameras():
+    now = time.time()
+    with RUNTIME_LOCK:
+        # Filter out cameras not seen in the last 15 minutes
+        fresh = {
+            ip: data for ip, data in CAMERA_DISCOVERY_STATE["discoveredCameras"].items()
+            if now - data["lastSeen"] < 900
+        }
+        CAMERA_DISCOVERY_STATE["discoveredCameras"] = fresh
+        return jsonify({"cameras": list(fresh.values())}), 200
+
+
 @app.route("/api/camera/video-feed", methods=["GET"])
 def camera_video_feed():
     ensure_stream_runtime_started()
@@ -1077,7 +1420,10 @@ def serve_frontend(path):
 if __name__ == "__main__":
     ensure_data_files()
     bind_host = os.getenv("APP_BIND", "0.0.0.0")
-    bind_port = int(os.getenv("APP_PORT", "5000"))
+    try:
+        bind_port = int(os.getenv("APP_PORT", "80"))
+    except (ValueError, TypeError):
+        bind_port = 80
 
     print("=" * 60)
     print("EcoEYE Secure Offline Server Starting")
@@ -1088,4 +1434,7 @@ if __name__ == "__main__":
     print("LAN access enabled. Use board-ip:published-port from same WiFi.")
     print("=" * 60)
 
+    ensure_control_bridge_started()
+    ensure_discovery_started()
+    ensure_camera_discovery_started()
     app.run(host=bind_host, port=bind_port, debug=False)
