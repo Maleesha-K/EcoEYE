@@ -1147,13 +1147,20 @@ def get_settings():
 def wifi_scan():
     try:
         # Rescan first to get fresh results
-        subprocess.run(["nmcli", "device", "wifi", "rescan"], capture_output=True, timeout=10)
+        rescan_proc = subprocess.run(["nmcli", "device", "wifi", "rescan"], capture_output=True, timeout=10)
+        if rescan_proc.returncode != 0:
+            print(f"WiFi Rescan Warning: {rescan_proc.stderr.decode('utf-8').strip()}")
         
         # Get the list
         result = subprocess.run(
             ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,BARS", "device", "wifi", "list"],
-            capture_output=True, text=True, timeout=10
+            capture_output=True, text=True, timeout=15
         )
+        
+        if result.returncode != 0:
+            error_msg = result.stderr or "nmcli list failed"
+            print(f"WiFi List Error: {error_msg}")
+            return jsonify({"error": error_msg}), 500
         
         networks = []
         for line in result.stdout.strip().split("\n"):

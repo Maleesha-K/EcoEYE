@@ -34,6 +34,7 @@ export default function Settings({ token }) {
     const [selectedNetwork, setSelectedNetwork] = useState(null)
     const [wifiPassword, setWifiPassword] = useState('')
     const [wifiStatus, setWifiStatus] = useState({ connected: false, ssid: '' })
+    const [wifiError, setWifiError] = useState('')
     
     // Camera Discovery
     const [cameraNetworks, setCameraNetworks] = useState([])
@@ -108,7 +109,7 @@ export default function Settings({ token }) {
 
     const scanWifi = async () => {
         setWifiScanning(true)
-        setError('')
+        setWifiError('')
         try {
             const res = await fetch('/api/wifi/scan', {
                 headers: { Authorization: `Bearer ${token}` },
@@ -117,7 +118,7 @@ export default function Settings({ token }) {
             const data = await res.json()
             setWifiNetworks(data)
         } catch (err) {
-            setError(err.message)
+            setWifiError(err.message)
         } finally {
             setWifiScanning(false)
         }
@@ -126,7 +127,7 @@ export default function Settings({ token }) {
     const connectWifi = async () => {
         if (!selectedNetwork) return
         setWifiConnecting(true)
-        setError('')
+        setWifiError('')
         try {
             const res = await fetch('/api/wifi/connect', {
                 method: 'POST',
@@ -141,7 +142,7 @@ export default function Settings({ token }) {
             setTimeout(() => setSaved(false), 3000)
             loadWifiStatus()
         } catch (err) {
-            setError(err.message)
+            setWifiError(err.message)
         } finally {
             setWifiConnecting(false)
         }
@@ -368,6 +369,12 @@ export default function Settings({ token }) {
                     )}
                 </div>
                 
+                {wifiError && (
+                    <div className="settings-error" style={{ margin: '0 16px 16px', borderLeft: '4px solid #ef4444' }}>
+                        {wifiError}
+                    </div>
+                )}
+
                 <div className="wifi-controls">
                     <button 
                         className="save-btn" 
