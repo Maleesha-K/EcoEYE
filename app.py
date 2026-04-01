@@ -31,6 +31,7 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 AUTH_FILE = DATA_DIR / "auth.json"
 SETUP_FILE = DATA_DIR / "setup.json"
 CAMERA_CONFIG_FILE = DATA_DIR / "camera-config.json"
+ZONE_DEVICES_FILE = DATA_DIR / "zone-devices.json"
 
 APP_VERSION = "3.0.0"
 try:
@@ -301,6 +302,78 @@ def validate_camera_config(config):
         return "cameraCount must match length of cameraSources"
     
     return None
+
+
+def load_zone_devices():
+    """Load zone device assignments from JSON file or return empty dict."""
+    ensure_data_files()
+    try:
+        if ZONE_DEVICES_FILE.exists():
+            return json.loads(ZONE_DEVICES_FILE.read_text(encoding="utf-8"))
+        return {}
+    except Exception:
+        return {}
+
+
+def save_zone_devices(zone_devices):
+    """Save zone device assignments to JSON file."""
+    ZONE_DEVICES_FILE.write_text(json.dumps(zone_devices, indent=2), encoding="utf-8")
+
+
+def send_device_control_signal(device_ip, state):
+    """
+    Send ON/OFF control signal to ESP device via HTTP.
+    
+    Supports multiple ESP firmware variants:
+    1. IR Remote Controller (room1_ac): GET /control?cmd=on/off
+    2. Generic GPIO: GET /gpio?state=on/off or GET /on or /off
+    3. JSON API: POST /api/control with {"state": "on"/"off"}
+    """
+    state_str = "on" if state else "off"
+    
+    # Try endpoints in order of specificity
+    endpoints = [
+        # IR Remote controller endpoints (primary)
+        f"http://{device_ip}/control?cmd={state_str}",
+        # Generic GPIO endpoints
+        f"http://{device_ip}/gpio?state={state_str}",
+        f"http://{device_ip}/{state_str}",
+        f"http://{device_ip}:80/{state_str}",
+    ]
+    
+    success = False
+    last_error = None
+    
+    for endpoint in endpoints:
+        try:
+            resp = requests.get(endpoint, timeout=2)
+            if resp.status_code in [200, 201]:
+                success = True
+                print(f"✓ Control signal sent to {device_ip} ({state_str}) via {endpoint}")
+                break
+        except Exception as e:
+            last_error = str(e)
+            continue
+    
+    # Fallback: try POST to JSON API
+    if not success:
+        try:
+            payload = {"state": state_str}
+            resp = requests.post(
+                f"http://{device_ip}:80/api/control",
+                json=payload,
+                timeout=2
+            )
+            if resp.status_code in [200, 201]:
+                success = True
+                print(f"✓ Control signal sent to {device_ip} ({state_str}) via POST /api/control")
+        except Exception as e:
+            last_error = str(e)
+    
+    if not success:
+        print(f"✗ Failed to send control signal to {device_ip}: {last_error}")
+    
+    return success
 
 
 def restart_stream_processor():
@@ -1387,6 +1460,88 @@ def update_camera_config():
             "success": True,
             "message": "Camera configuration updated and stream restarted",
             "config": payload
+        }), 200
+    
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
+
+@app.route("/api/zones/devices", methods=["GET"])
+def get_zone_devices():
+    """Get zone device assignments."""
+    zone_devices = load_zone_devices()
+    return jsonify({"zoneDevices": zone_devices}), 200
+
+
+@app.route("/api/zones/devices", methods=["PUT"])
+def set_zone_devices():
+    """Save zone device assignments."""
+    try:
+        payload = request.get_json()
+        if not isinstance(payload, dict):
+            return jsonify({"error": "Payload must be a dict"}), 400
+        
+        # Validate structure: keys should be "camX:zoneKey", values should be arrays of IPs
+        for zone_id, ips in payload.items():
+            if not isinstance(ips, list):
+                return jsonify({"error": f"Value for {zone_id} must be a list of IPs"}), 400
+            for ip in ips:
+                if not isinstance(ip, str):
+                    return jsonify({"error": f"Each IP must be a string, not {type(ip).__name__}"}), 400
+        
+        save_zone_devices(payload)
+        return jsonify({"success": True, "message": "Zone devices saved"}), 200
+    
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
+
+@app.route("/api/device/control", methods=["POST"])
+def device_control():
+    """
+    Send ON/OFF control signals to zone devices based on occupancy.
+    
+    Expected payload:
+    {
+        "camKey": "cam1",
+        "zoneKey": "bottom_left",
+        "occupied": true/false
+    }
+    """
+    try:
+        payload = request.get_json()
+        if not payload:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        cam_key = payload.get("camKey", "").strip()
+        zone_key = payload.get("zoneKey", "").strip()
+        occupied = bool(payload.get("occupied", False))
+        
+        if not cam_key or not zone_key:
+            return jsonify({"error": "camKey and zoneKey required"}), 400
+        
+        zone_id = f"{cam_key}:{zone_key}"
+        zone_devices = load_zone_devices()
+        devices = zone_devices.get(zone_id, [])
+        
+        if not devices:
+            return jsonify({
+                "success": True,
+                "message": f"No devices registered for {zone_id}",
+                "signalsSent": 0
+            }), 200
+        
+        signals_sent = 0
+        for device_ip in devices:
+            if send_device_control_signal(device_ip, occupied):
+                signals_sent += 1
+        
+        return jsonify({
+            "success": True,
+            "message": f"Sent {signals_sent}/{len(devices)} control signals",
+            "zoneId": zone_id,
+            "state": "ON" if occupied else "OFF",
+            "signalsSent": signals_sent
         }), 200
     
     except Exception as ex:
