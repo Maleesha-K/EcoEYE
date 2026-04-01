@@ -11,6 +11,7 @@ CAMERA_SOURCES = [
     "http://10.10.1.9:8080/video",
     "http://10.10.1.10:8080/video",
 ]
+ZONE_COUNTS = [4, 4, 4]
 
 # Framing behavior
 SLOT_SECONDS = 1.0
@@ -125,6 +126,12 @@ def zone_from_local_point(local_x, local_y, div_x, div_y):
     return "bottom_right"
 
 
+def normalized_zone_count_for_tile(tile_idx):
+    if tile_idx < len(ZONE_COUNTS) and ZONE_COUNTS[tile_idx] == 1:
+        return 1
+    return 4
+
+
 def draw_start_button(frame, started_playback, start_button):
     if started_playback:
         return
@@ -162,22 +169,26 @@ def run_stream_processor(state_callback, stop_event=None, start_inference=True, 
         cam.start()
 
     n = len(cams)
+    tile_zone_counts = [normalized_zone_count_for_tile(i) for i in range(n)]
+    zone_keys_by_tile = {
+        i: (["full"] if tile_zone_counts[i] == 1 else ["top_left", "top_right", "bottom_left", "bottom_right"])
+        for i in range(n)
+    }
     canvas_w, canvas_h, positions = build_canvas_layout(n, TILE_WIDTH, TILE_HEIGHT)
     canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
 
     started_playback = bool(start_inference)
     last_decision_time = time.time()
-    zone_keys = ["top_left", "top_right", "bottom_left", "bottom_right"]
     last_seen_time = {
-        tile_idx: {key: 0.0 for key in zone_keys}
+        tile_idx: {key: 0.0 for key in zone_keys_by_tile[tile_idx]}
         for tile_idx in range(n)
     }
     pending_detection = {
-        tile_idx: {key: False for key in zone_keys}
+        tile_idx: {key: False for key in zone_keys_by_tile[tile_idx]}
         for tile_idx in range(n)
     }
     zone_occupied = {
-        tile_idx: {key: False for key in zone_keys}
+        tile_idx: {key: False for key in zone_keys_by_tile[tile_idx]}
         for tile_idx in range(n)
     }
 
@@ -226,15 +237,18 @@ def run_stream_processor(state_callback, stop_event=None, start_inference=True, 
                             if x0 < cx < (x0 + w) and y0 < cy < (y0 + h):
                                 local_x = cx - x0
                                 local_y = cy - y0
-                                div_x, div_y = dividers[tile_idx]
-                                zone_key = zone_from_local_point(local_x, local_y, div_x, div_y)
+                                if tile_zone_counts[tile_idx] == 1:
+                                    zone_key = "full"
+                                else:
+                                    div_x, div_y = dividers[tile_idx]
+                                    zone_key = zone_from_local_point(local_x, local_y, div_x, div_y)
                                 pending_detection[tile_idx][zone_key] = True
                                 break
 
                 wall_time_now = time.time()
                 if wall_time_now - last_decision_time >= DECISION_INTERVAL_SEC:
                     for tile_idx in range(n):
-                        for key in zone_keys:
+                        for key in zone_keys_by_tile[tile_idx]:
                             if pending_detection[tile_idx][key]:
                                 zone_occupied[tile_idx][key] = True
                                 last_seen_time[tile_idx][key] = wall_time_now
@@ -254,38 +268,45 @@ def run_stream_processor(state_callback, stop_event=None, start_inference=True, 
 
             for idx, pos in enumerate(positions):
                 x0, y0, w, h = pos
-                div_x, div_y = dividers[idx]
-                gx = x0 + div_x
-                gy = y0 + div_y
-
-                cv2.line(display, (gx, y0), (gx, y0 + h), (255, 255, 255), 2)
-                cv2.line(display, (x0, gy), (x0 + w, gy), (255, 255, 255), 2)
-
-                zone_rects = {
-                    "top_left": (x0, y0, gx, gy),
-                    "top_right": (gx, y0, x0 + w, gy),
-                    "bottom_left": (x0, gy, gx, y0 + h),
-                    "bottom_right": (gx, gy, x0 + w, y0 + h),
-                }
-
-                for key, (zx1, zy1, zx2, zy2) in zone_rects.items():
-                    occ = zone_occupied[idx][key]
+                if tile_zone_counts[idx] == 1:
+                    occ = zone_occupied[idx]["full"]
                     color = (0, 255, 0) if occ else (0, 0, 255)
-                    cv2.rectangle(display, (zx1, zy1), (zx2, zy2), color, 1)
+                    cv2.rectangle(display, (x0, y0), (x0 + w, y0 + h), color, 2)
+                    cv2.putText(display, f"FULL: {'ON' if occ else 'OFF'}", (x0 + 10, y0 + 24),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+                else:
+                    div_x, div_y = dividers[idx]
+                    gx = x0 + div_x
+                    gy = y0 + div_y
 
-                labels = [
-                    ("TL", zone_occupied[idx]["top_left"]),
-                    ("TR", zone_occupied[idx]["top_right"]),
-                    ("BL", zone_occupied[idx]["bottom_left"]),
-                    ("BR", zone_occupied[idx]["bottom_right"]),
-                ]
-                text_y = y0 + 24
-                for short_key, occ in labels:
-                    text = f"{short_key}: {'ON' if occ else 'OFF'}"
-                    text_color = (0, 255, 0) if occ else (0, 0, 255)
-                    cv2.putText(display, text, (x0 + 10, text_y),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
-                    text_y += 18
+                    cv2.line(display, (gx, y0), (gx, y0 + h), (255, 255, 255), 2)
+                    cv2.line(display, (x0, gy), (x0 + w, gy), (255, 255, 255), 2)
+
+                    zone_rects = {
+                        "top_left": (x0, y0, gx, gy),
+                        "top_right": (gx, y0, x0 + w, gy),
+                        "bottom_left": (x0, gy, gx, y0 + h),
+                        "bottom_right": (gx, gy, x0 + w, y0 + h),
+                    }
+
+                    for key, (zx1, zy1, zx2, zy2) in zone_rects.items():
+                        occ = zone_occupied[idx][key]
+                        color = (0, 255, 0) if occ else (0, 0, 255)
+                        cv2.rectangle(display, (zx1, zy1), (zx2, zy2), color, 1)
+
+                    labels = [
+                        ("TL", zone_occupied[idx]["top_left"]),
+                        ("TR", zone_occupied[idx]["top_right"]),
+                        ("BL", zone_occupied[idx]["bottom_left"]),
+                        ("BR", zone_occupied[idx]["bottom_right"]),
+                    ]
+                    text_y = y0 + 24
+                    for short_key, occ in labels:
+                        text = f"{short_key}: {'ON' if occ else 'OFF'}"
+                        text_color = (0, 255, 0) if occ else (0, 0, 255)
+                        cv2.putText(display, text, (x0 + 10, text_y),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
+                        text_y += 18
 
             cam_zone_status = {
                 f"cam{idx+1}": dict(zone_occupied[idx])
@@ -325,6 +346,11 @@ def main():
         cam.start()
 
     n = len(cams)
+    tile_zone_counts = [normalized_zone_count_for_tile(i) for i in range(n)]
+    zone_keys_by_tile = {
+        i: (["full"] if tile_zone_counts[i] == 1 else ["top_left", "top_right", "bottom_left", "bottom_right"])
+        for i in range(n)
+    }
     canvas_w, canvas_h, positions = build_canvas_layout(n, TILE_WIDTH, TILE_HEIGHT)
     canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
 
@@ -332,17 +358,16 @@ def main():
     start_button = (20, 20, 200, 80)
 
     last_decision_time = time.time()
-    zone_keys = ["top_left", "top_right", "bottom_left", "bottom_right"]
     last_seen_time = {
-        tile_idx: {key: 0.0 for key in zone_keys}
+        tile_idx: {key: 0.0 for key in zone_keys_by_tile[tile_idx]}
         for tile_idx in range(n)
     }
     pending_detection = {
-        tile_idx: {key: False for key in zone_keys}
+        tile_idx: {key: False for key in zone_keys_by_tile[tile_idx]}
         for tile_idx in range(n)
     }
     zone_occupied = {
-        tile_idx: {key: False for key in zone_keys}
+        tile_idx: {key: False for key in zone_keys_by_tile[tile_idx]}
         for tile_idx in range(n)
     }
 
@@ -417,15 +442,18 @@ def main():
                             if x0 < cx < (x0 + w) and y0 < cy < (y0 + h):
                                 local_x = cx - x0
                                 local_y = cy - y0
-                                div_x, div_y = dividers[tile_idx]
-                                zone_key = zone_from_local_point(local_x, local_y, div_x, div_y)
+                                if tile_zone_counts[tile_idx] == 1:
+                                    zone_key = "full"
+                                else:
+                                    div_x, div_y = dividers[tile_idx]
+                                    zone_key = zone_from_local_point(local_x, local_y, div_x, div_y)
                                 pending_detection[tile_idx][zone_key] = True
                                 break
 
                 wall_time_now = time.time()
                 if wall_time_now - last_decision_time >= DECISION_INTERVAL_SEC:
                     for tile_idx in range(n):
-                        for key in zone_keys:
+                        for key in zone_keys_by_tile[tile_idx]:
                             if pending_detection[tile_idx][key]:
                                 zone_occupied[tile_idx][key] = True
                                 last_seen_time[tile_idx][key] = wall_time_now
@@ -445,41 +473,48 @@ def main():
 
             for idx, pos in enumerate(positions):
                 x0, y0, w, h = pos
-                div_x, div_y = dividers[idx]
-                gx = x0 + div_x
-                gy = y0 + div_y
-
-                # Per-tile X and Y dividers.
-                cv2.line(display, (gx, y0), (gx, y0 + h), (255, 255, 255), 2)
-                cv2.line(display, (x0, gy), (x0 + w, gy), (255, 255, 255), 2)
-
-                # Draw 4 per-tile zone boundaries with occupancy colors.
-                zone_rects = {
-                    "top_left": (x0, y0, gx, gy),
-                    "top_right": (gx, y0, x0 + w, gy),
-                    "bottom_left": (x0, gy, gx, y0 + h),
-                    "bottom_right": (gx, gy, x0 + w, y0 + h),
-                }
-
-                for key, (zx1, zy1, zx2, zy2) in zone_rects.items():
-                    occ = zone_occupied[idx][key]
+                if tile_zone_counts[idx] == 1:
+                    occ = zone_occupied[idx]["full"]
                     color = (0, 255, 0) if occ else (0, 0, 255)
-                    cv2.rectangle(display, (zx1, zy1), (zx2, zy2), color, 1)
+                    cv2.rectangle(display, (x0, y0), (x0 + w, y0 + h), color, 2)
+                    cv2.putText(display, f"FULL: {'ON' if occ else 'OFF'}", (x0 + 10, y0 + 24),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+                else:
+                    div_x, div_y = dividers[idx]
+                    gx = x0 + div_x
+                    gy = y0 + div_y
 
-                # Compact per-tile status labels.
-                labels = [
-                    ("TL", zone_occupied[idx]["top_left"]),
-                    ("TR", zone_occupied[idx]["top_right"]),
-                    ("BL", zone_occupied[idx]["bottom_left"]),
-                    ("BR", zone_occupied[idx]["bottom_right"]),
-                ]
-                text_y = y0 + 24
-                for short_key, occ in labels:
-                    text = f"{short_key}: {'ON' if occ else 'OFF'}"
-                    text_color = (0, 255, 0) if occ else (0, 0, 255)
-                    cv2.putText(display, text, (x0 + 10, text_y),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
-                    text_y += 18
+                    # Per-tile X and Y dividers.
+                    cv2.line(display, (gx, y0), (gx, y0 + h), (255, 255, 255), 2)
+                    cv2.line(display, (x0, gy), (x0 + w, gy), (255, 255, 255), 2)
+
+                    # Draw 4 per-tile zone boundaries with occupancy colors.
+                    zone_rects = {
+                        "top_left": (x0, y0, gx, gy),
+                        "top_right": (gx, y0, x0 + w, gy),
+                        "bottom_left": (x0, gy, gx, y0 + h),
+                        "bottom_right": (gx, gy, x0 + w, y0 + h),
+                    }
+
+                    for key, (zx1, zy1, zx2, zy2) in zone_rects.items():
+                        occ = zone_occupied[idx][key]
+                        color = (0, 255, 0) if occ else (0, 0, 255)
+                        cv2.rectangle(display, (zx1, zy1), (zx2, zy2), color, 1)
+
+                    # Compact per-tile status labels.
+                    labels = [
+                        ("TL", zone_occupied[idx]["top_left"]),
+                        ("TR", zone_occupied[idx]["top_right"]),
+                        ("BL", zone_occupied[idx]["bottom_left"]),
+                        ("BR", zone_occupied[idx]["bottom_right"]),
+                    ]
+                    text_y = y0 + 24
+                    for short_key, occ in labels:
+                        text = f"{short_key}: {'ON' if occ else 'OFF'}"
+                        text_color = (0, 255, 0) if occ else (0, 0, 255)
+                        cv2.putText(display, text, (x0 + 10, text_y),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
+                        text_y += 18
 
             draw_start_button(display, started_playback, start_button)
 

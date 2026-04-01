@@ -272,6 +272,12 @@
     gap: 1rem;
 }
 
+.zones-grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
 .zone-status-box {
     position: relative;
     padding: 1rem;

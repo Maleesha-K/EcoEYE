@@ -128,6 +128,7 @@ DEFAULT_CAMERA_CONFIG = {
         "http://10.10.1.8:8080/video",
         "http://10.10.1.9:8080/video",
     ],
+    "zoneCounts": [4, 4],
     "slotSeconds": 1.0,
     "tileWidth": 480,
     "tileHeight": 270,
@@ -301,6 +302,15 @@ def validate_camera_config(config):
     
     if config.get("cameraCount", 0) != len(config.get("cameraSources", [])):
         return "cameraCount must match length of cameraSources"
+
+    zone_counts = config.get("zoneCounts")
+    if zone_counts is not None:
+        if not isinstance(zone_counts, list):
+            return "zoneCounts must be a list"
+        if len(zone_counts) != len(config.get("cameraSources", [])):
+            return "zoneCounts length must match cameraSources"
+        if any(z not in [1, 4] for z in zone_counts):
+            return "zoneCounts values must be either 1 or 4"
     
     return None
 
@@ -1460,6 +1470,13 @@ def update_camera_config():
         error_msg = validate_camera_config(payload)
         if error_msg:
             return jsonify({"error": error_msg}), 400
+
+        sources = payload.get("cameraSources", [])
+        zone_counts = payload.get("zoneCounts")
+        if not isinstance(zone_counts, list) or len(zone_counts) != len(sources):
+            payload["zoneCounts"] = [4] * len(sources)
+        else:
+            payload["zoneCounts"] = [1 if z == 1 else 4 for z in zone_counts]
         
         # Save to file
         save_camera_config(payload)
@@ -1467,6 +1484,7 @@ def update_camera_config():
         # Update ecoeye_framed_yolo module globals
         ecoeye_framed_yolo.CAMERA_COUNT = payload.get("cameraCount", 2)
         ecoeye_framed_yolo.CAMERA_SOURCES = payload.get("cameraSources", [])
+        ecoeye_framed_yolo.ZONE_COUNTS = payload.get("zoneCounts", [4] * len(payload.get("cameraSources", [])))
         ecoeye_framed_yolo.SLOT_SECONDS = float(payload.get("slotSeconds", 1.0))
         ecoeye_framed_yolo.TILE_WIDTH = int(payload.get("tileWidth", 480))
         ecoeye_framed_yolo.TILE_HEIGHT = int(payload.get("tileHeight", 270))

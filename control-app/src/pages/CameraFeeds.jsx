@@ -33,6 +33,17 @@ const normalizeSourceByType = (source, type) => {
     return `http://${value}`
 }
 
+const normalizeZoneCounts = (cameraSources, zoneCounts) => {
+    const safeZoneCounts = Array.isArray(zoneCounts) ? zoneCounts : []
+    return cameraSources.map((_, index) => (safeZoneCounts[index] === 1 ? 1 : 4))
+}
+
+const cameraKeyToIndex = (camKey) => {
+    const match = String(camKey || '').match(/^cam(\d+)$/i)
+    if (!match) return -1
+    return Math.max(0, parseInt(match[1], 10) - 1)
+}
+
 export default function CameraFeeds() {
     // Stream & Status State
     const [isConnected, setIsConnected] = useState(false)
@@ -56,6 +67,7 @@ export default function CameraFeeds() {
             'http://10.10.1.8:8080/video',
             'http://10.10.1.9:8080/video',
         ],
+        zoneCounts: [4, 4],
         slotSeconds: 1.0,
         tileWidth: 480,
         tileHeight: 270,
@@ -84,8 +96,12 @@ export default function CameraFeeds() {
                 const response = await fetch('/api/camera/config')
                 if (response.ok) {
                     const data = await response.json()
-                    setConfig(data)
-                    setEditingConfig(data)
+                    const normalizedData = {
+                        ...data,
+                        zoneCounts: normalizeZoneCounts(data.cameraSources || [], data.zoneCounts),
+                    }
+                    setConfig(normalizedData)
+                    setEditingConfig(normalizedData)
                     setSourceTypes((data.cameraSources || []).map(inferSourceType))
                 }
             } catch (err) {
@@ -165,6 +181,7 @@ export default function CameraFeeds() {
             setEditingConfig((prev) => ({
                 ...prev,
                 cameraSources: [...prev.cameraSources, normalizedSource],
+                zoneCounts: [...(prev.zoneCounts || []), 4],
                 cameraCount: prev.cameraSources.length + 1,
             }))
             setSourceTypes((prev) => [...prev, newCameraType])
@@ -180,7 +197,19 @@ export default function CameraFeeds() {
             return {
                 ...prev,
                 cameraSources: newSources,
+                zoneCounts: (prev.zoneCounts || []).filter((_, i) => i !== index),
                 cameraCount: newSources.length,
+            }
+        })
+    }
+
+    const handleZoneCountChange = (index, nextValue) => {
+        setEditingConfig((prev) => {
+            const nextZoneCounts = normalizeZoneCounts(prev.cameraSources || [], prev.zoneCounts)
+            nextZoneCounts[index] = nextValue === 1 ? 1 : 4
+            return {
+                ...prev,
+                zoneCounts: nextZoneCounts,
             }
         })
     }
@@ -202,6 +231,7 @@ export default function CameraFeeds() {
             const payload = {
                 ...editingConfig,
                 cameraSources: normalizedSources,
+                zoneCounts: normalizeZoneCounts(normalizedSources, editingConfig.zoneCounts),
                 cameraCount: normalizedSources.length,
             }
 
@@ -316,13 +346,18 @@ export default function CameraFeeds() {
 
     // Detect zone occupancy changes and send device control signals
     useEffect(() => {
-        // zoneStatus is nested: { camKey: { zoneKey: occupancy_bool } }
+        const previousDisplayStatus = previousZoneStatusRef.current || {}
+        const nextDisplayStatus = {}
+
         Object.entries(zoneStatus).forEach(([camKey, zones]) => {
             if (typeof zones !== 'object' || zones === null) return
 
-            Object.entries(zones).forEach(([zoneKey, isOccupied]) => {
+            const displayZones = getDisplayZonesForCamera(camKey, zones)
+            nextDisplayStatus[camKey] = displayZones
+
+            Object.entries(displayZones).forEach(([zoneKey, isOccupied]) => {
                 const fullZoneId = `${camKey}:${zoneKey}`
-                const wasOccupied = previousZoneStatusRef.current?.[camKey]?.[zoneKey]
+                const wasOccupied = previousDisplayStatus?.[camKey]?.[zoneKey]
 
                 // Only send signal if occupancy state changed
                 if (wasOccupied !== undefined && wasOccupied !== isOccupied) {
@@ -331,8 +366,8 @@ export default function CameraFeeds() {
             })
         })
 
-        previousZoneStatusRef.current = zoneStatus
-    }, [zoneStatus])
+        previousZoneStatusRef.current = nextDisplayStatus
+    }, [zoneStatus, editingConfig.zoneCounts])
 
     const handleCloseZoneModal = () => {
         setShowZoneDeviceModal(false)
@@ -341,10 +376,26 @@ export default function CameraFeeds() {
     }
 
     const zoneNames = {
+        full: 'Full Zone',
         top_left: 'Top Left',
         top_right: 'Top Right',
         bottom_left: 'Bottom Left',
         bottom_right: 'Bottom Right',
+    }
+
+    const getZoneCountForCamera = (camKey) => {
+        const index = cameraKeyToIndex(camKey)
+        const zoneCounts = editingConfig.zoneCounts || config.zoneCounts || []
+        if (index < 0) return 4
+        return zoneCounts[index] === 1 ? 1 : 4
+    }
+
+    const getDisplayZonesForCamera = (camKey, zones) => {
+        if (getZoneCountForCamera(camKey) === 1) {
+            const isOccupied = Object.values(zones || {}).some((value) => value === true)
+            return { full: isOccupied }
+        }
+        return zones || {}
     }
 
     return (
@@ -450,6 +501,16 @@ export default function CameraFeeds() {
                                         className="source-input"
                                         placeholder="Camera URL"
                                     />
+                                    <select
+                                        value={(editingConfig.zoneCounts || [])[index] === 1 ? 1 : 4}
+                                        onChange={(e) => handleZoneCountChange(index, parseInt(e.target.value, 10))}
+                                        className="source-type-select"
+                                        aria-label={`Zoning mode for camera ${index + 1}`}
+                                        title="Select zones for this camera"
+                                    >
+                                        <option value={1}>1 ZONE</option>
+                                        <option value={4}>4 ZONES</option>
+                                    </select>
                                     <button
                                         onClick={() => handleRemoveCamera(index)}
                                         className="btn-remove"
@@ -750,8 +811,8 @@ export default function CameraFeeds() {
                                     />
                                 </div>
 
-                                <div className="zones-grid-4">
-                                    {Object.entries(zones).map(([zoneKey, isOccupied]) => {
+                                <div className={`zones-grid-${getZoneCountForCamera(camKey) === 1 ? '1' : '4'}`}>
+                                    {Object.entries(getDisplayZonesForCamera(camKey, zones)).map(([zoneKey, isOccupied]) => {
                                         const zoneId = `${camKey}:${zoneKey}`
                                         const devicesInZone = zoneDevices[zoneId] || []
                                         return (
@@ -798,8 +859,10 @@ export default function CameraFeeds() {
                     {[
                         {
                             label: 'Total Occupied Zones',
-                            value: Object.values(zoneStatus)
-                                .flatMap((z) => Object.values(z))
+                            value: Object.entries(zoneStatus)
+                                .flatMap(([camKey, zones]) => {
+                                    return Object.values(getDisplayZonesForCamera(camKey, zones))
+                                })
                                 .filter((v) => v === true).length,
                             icon: <Camera size={16} />,
                         },
