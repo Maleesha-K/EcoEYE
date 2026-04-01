@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
-import { Camera, AlertCircle, Wifi, RefreshCw, Plus, X, Save } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Camera, AlertCircle, Wifi, RefreshCw, Plus, X, Save, Trash2 } from 'lucide-react'
 import './CameraFeeds.css'
 
 const pageVariants = {
@@ -68,6 +68,15 @@ export default function CameraFeeds() {
     const [sourceTypes, setSourceTypes] = useState(config.cameraSources.map(inferSourceType))
     const [newCameraType, setNewCameraType] = useState('url')
 
+    // Zone Device Management
+    const [showZoneDeviceModal, setShowZoneDeviceModal] = useState(false)
+    const [selectedZoneInfo, setSelectedZoneInfo] = useState(null) // { camKey, zoneKey }
+    const [deviceIpInput, setDeviceIpInput] = useState('')
+    const [zoneDevices, setZoneDevices] = useState({}) // { "cam1:top_left": ["ip1", "ip2"] }
+
+    // Ref to track previous zone status for occupancy change detection
+    const previousZoneStatusRef = useRef(null)
+
     // Fetch current config from backend on load
     useEffect(() => {
         const fetchConfig = async () => {
@@ -84,6 +93,22 @@ export default function CameraFeeds() {
             }
         }
         fetchConfig()
+    }, [])
+
+    // Fetch zone devices from backend on load
+    useEffect(() => {
+        const fetchZoneDevices = async () => {
+            try {
+                const response = await fetch('/api/zones/devices')
+                if (response.ok) {
+                    const data = await response.json()
+                    setZoneDevices(data.zoneDevices || {})
+                }
+            } catch (err) {
+                console.error('Failed to fetch zone devices:', err)
+            }
+        }
+        fetchZoneDevices()
     }, [])
 
     // Fetch zone occupancy status from backend
@@ -213,6 +238,106 @@ export default function CameraFeeds() {
         setIsLoading(true)
         setError('')
         setStreamNonce(Date.now())
+    }
+
+    const handleZoneClick = (camKey, zoneKey) => {
+        setSelectedZoneInfo({ camKey, zoneKey })
+        setShowZoneDeviceModal(true)
+        setDeviceIpInput('')
+    }
+
+    const handleAddDeviceToZone = () => {
+        if (!deviceIpInput.trim() || !selectedZoneInfo) return
+
+        const zoneId = `${selectedZoneInfo.camKey}:${selectedZoneInfo.zoneKey}`
+        const updatedZoneDevices = {
+            ...zoneDevices,
+            [zoneId]: [...(zoneDevices[zoneId] || []), deviceIpInput.trim()],
+        }
+        setZoneDevices(updatedZoneDevices)
+        setDeviceIpInput('')
+
+        // Sync to backend
+        syncZoneDevicesToBackend(updatedZoneDevices)
+    }
+
+    const handleRemoveDeviceFromZone = (zoneId, index) => {
+        const updatedZoneDevices = {
+            ...zoneDevices,
+            [zoneId]: zoneDevices[zoneId].filter((_, i) => i !== index),
+        }
+        setZoneDevices(updatedZoneDevices)
+
+        // Sync to backend
+        syncZoneDevicesToBackend(updatedZoneDevices)
+    }
+
+    // Sync zone devices to backend API
+    const syncZoneDevicesToBackend = async (deviceMap) => {
+        try {
+            const response = await fetch('/api/zones/devices', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(deviceMap),
+            })
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null)
+                console.error('Failed to sync zone devices:', errData?.error || 'Unknown error')
+            }
+        } catch (err) {
+            console.error('Failed to sync zone devices to backend:', err)
+        }
+    }
+
+    // Send device control signal when zone occupancy changes
+    const sendDeviceControlSignal = async (zoneId, occupied) => {
+        try {
+            const [camKey, zoneKey] = zoneId.split(':')
+            const response = await fetch('/api/device/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    camKey,
+                    zoneKey,
+                    occupied,
+                }),
+            })
+            if (response.ok) {
+                const data = await response.json()
+                console.log(`[${zoneId}] Occupancy: ${occupied ? 'OCCUPIED' : 'EMPTY'} → Sent ${data.signalsSent}/${zoneDevices[zoneId]?.length || 0} control signals`)
+            } else {
+                const errData = await response.json().catch(() => null)
+                console.error(`Failed to send device control for ${zoneId}:`, errData?.error || 'Unknown error')
+            }
+        } catch (err) {
+            console.error(`Failed to send device control signal for ${zoneId}:`, err)
+        }
+    }
+
+    // Detect zone occupancy changes and send device control signals
+    useEffect(() => {
+        // zoneStatus is nested: { camKey: { zoneKey: occupancy_bool } }
+        Object.entries(zoneStatus).forEach(([camKey, zones]) => {
+            if (typeof zones !== 'object' || zones === null) return
+
+            Object.entries(zones).forEach(([zoneKey, isOccupied]) => {
+                const fullZoneId = `${camKey}:${zoneKey}`
+                const wasOccupied = previousZoneStatusRef.current?.[camKey]?.[zoneKey]
+
+                // Only send signal if occupancy state changed
+                if (wasOccupied !== undefined && wasOccupied !== isOccupied) {
+                    sendDeviceControlSignal(fullZoneId, isOccupied)
+                }
+            })
+        })
+
+        previousZoneStatusRef.current = zoneStatus
+    }, [zoneStatus])
+
+    const handleCloseZoneModal = () => {
+        setShowZoneDeviceModal(false)
+        setSelectedZoneInfo(null)
+        setDeviceIpInput('')
     }
 
     const zoneNames = {
@@ -626,18 +751,30 @@ export default function CameraFeeds() {
                                 </div>
 
                                 <div className="zones-grid-4">
-                                    {Object.entries(zones).map(([zoneKey, isOccupied]) => (
-                                        <div
-                                            key={zoneKey}
-                                            className={`zone-status-box ${isOccupied ? 'occupied' : 'empty'}`}
-                                        >
-                                            <div className="zone-status-indicator" />
-                                            <div className="zone-status-label">{zoneNames[zoneKey]}</div>
-                                            <div className="zone-status-state">
-                                                {isOccupied ? 'OCCUPIED' : 'EMPTY'}
+                                    {Object.entries(zones).map(([zoneKey, isOccupied]) => {
+                                        const zoneId = `${camKey}:${zoneKey}`
+                                        const devicesInZone = zoneDevices[zoneId] || []
+                                        return (
+                                            <div
+                                                key={zoneKey}
+                                                className={`zone-status-box ${isOccupied ? 'occupied' : 'empty'}`}
+                                                onClick={() => handleZoneClick(camKey, zoneKey)}
+                                                title="Click to add device IP addresses"
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                <div className="zone-status-indicator" />
+                                                <div className="zone-status-label">{zoneNames[zoneKey]}</div>
+                                                <div className="zone-status-state">
+                                                    {isOccupied ? 'OCCUPIED' : 'EMPTY'}
+                                                </div>
+                                                {devicesInZone.length > 0 && (
+                                                    <div className="zone-device-badge">
+                                                        <span>{devicesInZone.length} device{devicesInZone.length !== 1 ? 's' : ''}</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
 
                                 {cameraStatus[camKey] && (
@@ -692,6 +829,98 @@ export default function CameraFeeds() {
                     ))}
                 </div>
             </motion.section>
+
+            {/* Zone Device Management Modal */}
+            {showZoneDeviceModal && selectedZoneInfo && (
+                <motion.div
+                    className="modal-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={handleCloseZoneModal}
+                >
+                    <motion.div
+                        className="modal-content glass-card"
+                        onClick={(e) => e.stopPropagation()}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                    >
+                        <div className="modal-header">
+                            <h2>
+                                Add WiFi Devices - {selectedZoneInfo.camKey.toUpperCase()} /{' '}
+                                {zoneNames[selectedZoneInfo.zoneKey]}
+                            </h2>
+                            <button onClick={handleCloseZoneModal} className="btn-close">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="modal-body">
+                            {/* Device List */}
+                            <div className="device-list-container">
+                                <h3>Assigned Devices</h3>
+                                {(zoneDevices[`${selectedZoneInfo.camKey}:${selectedZoneInfo.zoneKey}`] || [])
+                                    .length === 0 ? (
+                                    <p className="no-devices-text">No devices assigned yet. Add one below.</p>
+                                ) : (
+                                    <div className="device-list">
+                                        {(zoneDevices[`${selectedZoneInfo.camKey}:${selectedZoneInfo.zoneKey}`] || []).map(
+                                            (ip, idx) => (
+                                                <div key={idx} className="device-item">
+                                                    <span className="device-ip">{ip}</span>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleRemoveDeviceFromZone(
+                                                                `${selectedZoneInfo.camKey}:${selectedZoneInfo.zoneKey}`,
+                                                                idx
+                                                            )
+                                                        }
+                                                        className="btn-remove-device"
+                                                        title="Remove device"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Add New Device */}
+                            <div className="add-device-container">
+                                <h3>Add New Device</h3>
+                                <div className="add-device-form">
+                                    <input
+                                        type="text"
+                                        value={deviceIpInput}
+                                        onChange={(e) => setDeviceIpInput(e.target.value)}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') handleAddDeviceToZone()
+                                        }}
+                                        placeholder="Enter device IP address (e.g., 192.168.1.50)"
+                                        className="device-input"
+                                    />
+                                    <button
+                                        onClick={handleAddDeviceToZone}
+                                        disabled={!deviceIpInput.trim()}
+                                        className="btn-add-device"
+                                    >
+                                        <Plus size={16} />
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="modal-footer">
+                            <button onClick={handleCloseZoneModal} className="btn-primary">
+                                Done
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
         </motion.div>
     )
 }
