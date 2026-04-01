@@ -11,6 +11,7 @@ import AIPredictions from './pages/AIPredictions'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import CameraFeeds from './pages/CameraFeeds'
+import CameraSetup from './pages/CameraSetup'
 import './App.css'
 
 function App() {
@@ -102,6 +103,7 @@ function App() {
             <Route path="/predictions" element={<AIPredictions />} />
             <Route path="/settings" element={<Settings token={token} />} />
             <Route path="/camera-feeds" element={<CameraFeeds />} />
+            <Route path="/camera-setup" element={<CameraSetup />} />
           </Routes>
         </AnimatePresence>
       </main>

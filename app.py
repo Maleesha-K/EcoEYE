@@ -7,6 +7,7 @@ import os
 import secrets
 import threading
 import time
+import uuid
 from urllib.parse import urlparse
 from functools import wraps
 from pathlib import Path
@@ -32,6 +33,7 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 AUTH_FILE = DATA_DIR / "auth.json"
 SETUP_FILE = DATA_DIR / "setup.json"
 CAMERA_CONFIG_FILE = DATA_DIR / "camera-config.json"
+CAMERA_SETUP_FILE = DATA_DIR / "camera-setup.json"
 ZONE_DEVICES_FILE = DATA_DIR / "zone-devices.json"
 
 APP_VERSION = "3.0.0"
@@ -133,6 +135,11 @@ DEFAULT_CAMERA_CONFIG = {
     "tileHeight": 270,
     "decisionIntervalSec": 1.0,
     "confidenceThreshold": 0.4,
+}
+
+DEFAULT_CAMERA_SETUP = {
+    "version": 1,
+    "cameras": [],
 }
 
 RUNTIME_STATE = {
@@ -249,6 +256,9 @@ def ensure_data_files():
     if not CAMERA_CONFIG_FILE.exists():
         CAMERA_CONFIG_FILE.write_text(json.dumps(DEFAULT_CAMERA_CONFIG, indent=2), encoding="utf-8")
 
+    if not CAMERA_SETUP_FILE.exists():
+        CAMERA_SETUP_FILE.write_text(json.dumps(DEFAULT_CAMERA_SETUP, indent=2), encoding="utf-8")
+
 
 def hash_password(password: str, salt: str) -> str:
     derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120000)
@@ -319,6 +329,30 @@ def load_zone_devices():
 def save_zone_devices(zone_devices):
     """Save zone device assignments to JSON file."""
     ZONE_DEVICES_FILE.write_text(json.dumps(zone_devices, indent=2), encoding="utf-8")
+
+
+def load_camera_setup():
+    """Load camera setup entries used by Camera Setup page."""
+    ensure_data_files()
+    try:
+        doc = json.loads(CAMERA_SETUP_FILE.read_text(encoding="utf-8"))
+        cameras = doc.get("cameras", []) if isinstance(doc, dict) else []
+        if not isinstance(cameras, list):
+            cameras = []
+        return {"version": 1, "cameras": cameras}
+    except Exception:
+        return dict(DEFAULT_CAMERA_SETUP)
+
+
+def save_camera_setup(doc):
+    """Persist camera setup entries used by Camera Setup page."""
+    if not isinstance(doc, dict):
+        doc = dict(DEFAULT_CAMERA_SETUP)
+    cameras = doc.get("cameras", [])
+    if not isinstance(cameras, list):
+        cameras = []
+    clean = {"version": 1, "cameras": cameras}
+    CAMERA_SETUP_FILE.write_text(json.dumps(clean, indent=2), encoding="utf-8")
 
 
 def send_device_control_signal(device_ip, state):
@@ -1573,6 +1607,155 @@ def device_control():
     
     except Exception as ex:
         return jsonify({"error": str(ex)}), 500
+
+
+@app.route("/api/camera/setup/list", methods=["GET"])
+def camera_setup_list():
+    setup_doc = load_camera_setup()
+    return jsonify({"cameras": setup_doc.get("cameras", [])}), 200
+
+
+@app.route("/api/camera/setup/scan", methods=["POST"])
+def camera_setup_scan():
+    ensure_camera_discovery_started()
+
+    setup_doc = load_camera_setup()
+    existing = {str(cam.get("ip", "")).strip(): cam for cam in setup_doc.get("cameras", []) if cam.get("ip")}
+
+    now = time.time()
+    with RUNTIME_LOCK:
+        discovered = {
+            ip: data
+            for ip, data in CAMERA_DISCOVERY_STATE["discoveredCameras"].items()
+            if now - float(data.get("lastSeen", 0)) < 900
+        }
+
+    cameras = []
+    for ip, data in discovered.items():
+        prev = existing.get(ip, {})
+        cameras.append(
+            {
+                "id": prev.get("id") or str(uuid.uuid4()),
+                "ip": ip,
+                "mac": prev.get("mac") or data.get("mac") or "",
+                "status": "Online",
+                "zone": prev.get("zone") or "",
+                "rtsp": prev.get("rtsp") or "",
+                "lastSeen": data.get("lastSeen", now),
+            }
+        )
+
+    # Keep previously saved entries that were not discovered this cycle.
+    for ip, prev in existing.items():
+        if ip not in discovered:
+            cameras.append(
+                {
+                    "id": prev.get("id") or str(uuid.uuid4()),
+                    "ip": ip,
+                    "mac": prev.get("mac") or "",
+                    "status": "Offline",
+                    "zone": prev.get("zone") or "",
+                    "rtsp": prev.get("rtsp") or "",
+                    "lastSeen": prev.get("lastSeen", 0),
+                }
+            )
+
+    cameras.sort(key=lambda c: c.get("ip", ""))
+    save_camera_setup({"version": 1, "cameras": cameras})
+    return jsonify({"cameras": cameras}), 200
+
+
+@app.route("/api/camera/setup/label", methods=["PUT"])
+def camera_setup_label():
+    payload = request.get_json(silent=True) or {}
+    ip = str(payload.get("ip", "")).strip()
+    zone = str(payload.get("zone", "")).strip()
+    rtsp = str(payload.get("rtsp", "")).strip()
+
+    if not ip:
+        return jsonify({"error": "ip is required"}), 400
+    if not zone:
+        return jsonify({"error": "zone is required"}), 400
+    if not rtsp:
+        return jsonify({"error": "rtsp is required"}), 400
+
+    setup_doc = load_camera_setup()
+    cameras = setup_doc.get("cameras", [])
+    updated = None
+
+    for cam in cameras:
+        if str(cam.get("ip", "")).strip() == ip:
+            cam["zone"] = zone
+            cam["rtsp"] = rtsp
+            cam["status"] = cam.get("status") or "Online"
+            updated = cam
+            break
+
+    if updated is None:
+        updated = {
+            "id": str(uuid.uuid4()),
+            "ip": ip,
+            "mac": "",
+            "status": "Online",
+            "zone": zone,
+            "rtsp": rtsp,
+            "lastSeen": time.time(),
+        }
+        cameras.append(updated)
+
+    save_camera_setup({"version": 1, "cameras": cameras})
+    return jsonify({"success": True, "camera": updated}), 200
+
+
+@app.route("/api/camera/setup/export", methods=["POST"])
+def camera_setup_export():
+    setup_doc = load_camera_setup()
+    cameras = [
+        cam
+        for cam in setup_doc.get("cameras", [])
+        if str(cam.get("zone", "")).strip() and str(cam.get("rtsp", "")).strip()
+    ]
+
+    export_doc = {
+        "cameraCount": len(cameras),
+        "cameraSources": [cam.get("rtsp", "") for cam in cameras],
+        "cameras": [
+            {
+                "id": cam.get("id") or f"cam-{idx + 1}",
+                "ip": cam.get("ip", ""),
+                "zone": cam.get("zone", ""),
+                "sourceType": "rtsp",
+                "source": cam.get("rtsp", ""),
+                "enabled": True,
+            }
+            for idx, cam in enumerate(cameras)
+        ],
+    }
+    return jsonify(export_doc), 200
+
+
+@app.route("/api/camera/setup/snapshot", methods=["GET"])
+def camera_setup_snapshot():
+    rtsp = str(request.args.get("rtsp", "")).strip()
+    if not rtsp:
+        return jsonify({"error": "rtsp query parameter is required"}), 400
+
+    cap = cv2.VideoCapture(rtsp)
+    try:
+        if not cap.isOpened():
+            return jsonify({"error": "Unable to open camera stream"}), 502
+
+        ok, frame = cap.read()
+        if not ok or frame is None:
+            return jsonify({"error": "Unable to capture frame"}), 502
+
+        ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+        if not ok:
+            return jsonify({"error": "Failed to encode frame"}), 500
+
+        return Response(encoded.tobytes(), mimetype="image/jpeg")
+    finally:
+        cap.release()
 
 
 @app.route("/")
