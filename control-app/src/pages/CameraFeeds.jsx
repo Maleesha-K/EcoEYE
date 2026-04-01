@@ -14,6 +14,25 @@ const itemVariants = {
     animate: { opacity: 1, y: 0 },
 }
 
+const inferSourceType = (source) => {
+    const value = String(source || '').trim().toLowerCase()
+    return value.startsWith('rtsp://') ? 'rtsp' : 'url'
+}
+
+const normalizeSourceByType = (source, type) => {
+    const value = String(source || '').trim()
+    if (!value) return ''
+
+    if (type === 'rtsp') {
+        return value.toLowerCase().startsWith('rtsp://') ? value : `rtsp://${value}`
+    }
+
+    if (/^https?:\/\//i.test(value)) {
+        return value
+    }
+    return `http://${value}`
+}
+
 export default function CameraFeeds() {
     // Stream & Status State
     const [isConnected, setIsConnected] = useState(false)
@@ -46,6 +65,8 @@ export default function CameraFeeds() {
 
     const [editingConfig, setEditingConfig] = useState({ ...config })
     const [newCameraUrl, setNewCameraUrl] = useState('')
+    const [sourceTypes, setSourceTypes] = useState(config.cameraSources.map(inferSourceType))
+    const [newCameraType, setNewCameraType] = useState('url')
 
     // Fetch current config from backend on load
     useEffect(() => {
@@ -56,6 +77,7 @@ export default function CameraFeeds() {
                     const data = await response.json()
                     setConfig(data)
                     setEditingConfig(data)
+                    setSourceTypes((data.cameraSources || []).map(inferSourceType))
                 }
             } catch (err) {
                 console.error('Failed to fetch camera config:', err)
@@ -71,12 +93,23 @@ export default function CameraFeeds() {
                 const response = await fetch('/api/camera/zone-status')
                 if (response.ok) {
                     const data = await response.json()
-                    setZoneStatus(data.zoneStatus || {})
-                    setCameraStatus(data.cameraStatus || {})
-                    setIsConnected(!!data.streamOnline)
+                    const nextZoneStatus = data.zoneStatus || {}
+                    const nextCameraStatus = data.cameraStatus || {}
+                    const anyCameraConnected = Object.values(nextCameraStatus).some(
+                        (cam) => cam && cam.connected
+                    )
+
+                    setZoneStatus(nextZoneStatus)
+                    setCameraStatus(nextCameraStatus)
+                    setIsConnected(anyCameraConnected)
+
                     if (data.streamOnline) {
                         setIsLoading(false)
-                        setError('')
+                        if (!anyCameraConnected && Object.keys(nextCameraStatus).length > 0) {
+                            setError('Camera stream is running but the configured source is offline or unreachable.')
+                        } else {
+                            setError('')
+                        }
                     }
                     if (data.runtimeError) {
                         setError(`Camera runtime error: ${data.runtimeError}`)
@@ -103,18 +136,22 @@ export default function CameraFeeds() {
 
     const handleAddCamera = () => {
         if (newCameraUrl.trim()) {
+            const normalizedSource = normalizeSourceByType(newCameraUrl, newCameraType)
             setEditingConfig((prev) => ({
                 ...prev,
-                cameraSources: [...prev.cameraSources, newCameraUrl.trim()],
+                cameraSources: [...prev.cameraSources, normalizedSource],
                 cameraCount: prev.cameraSources.length + 1,
             }))
+            setSourceTypes((prev) => [...prev, newCameraType])
             setNewCameraUrl('')
+            setNewCameraType('url')
         }
     }
 
     const handleRemoveCamera = (index) => {
         setEditingConfig((prev) => {
             const newSources = prev.cameraSources.filter((_, i) => i !== index)
+            setSourceTypes((prevTypes) => prevTypes.filter((_, i) => i !== index))
             return {
                 ...prev,
                 cameraSources: newSources,
@@ -129,19 +166,35 @@ export default function CameraFeeds() {
         setSaveSuccess(false)
 
         try {
+            const normalizedSources = editingConfig.cameraSources.map((source, index) =>
+                normalizeSourceByType(source, sourceTypes[index] || inferSourceType(source))
+            )
+
+            if (normalizedSources.some((source) => !source)) {
+                throw new Error('All camera sources must be filled before saving')
+            }
+
+            const payload = {
+                ...editingConfig,
+                cameraSources: normalizedSources,
+                cameraCount: normalizedSources.length,
+            }
+
             const response = await fetch('/api/camera/config', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editingConfig),
+                body: JSON.stringify(payload),
             })
 
             if (!response.ok) {
-                const err = await response.text()
-                throw new Error(err || 'Failed to save config')
+                const errBody = await response.json().catch(() => null)
+                const err = errBody?.error || 'Failed to save config'
+                throw new Error(err)
             }
 
-            const data = await response.json()
-            setConfig(editingConfig)
+            await response.json()
+            setConfig(payload)
+            setEditingConfig(payload)
             setSaveSuccess(true)
             setTimeout(() => setSaveSuccess(false), 3000)
 
@@ -231,6 +284,33 @@ export default function CameraFeeds() {
                         <div className="camera-sources-list">
                             {editingConfig.cameraSources.map((url, index) => (
                                 <div key={index} className="camera-source-item">
+                                    <select
+                                        value={sourceTypes[index] || 'url'}
+                                        onChange={(e) => {
+                                            const nextType = e.target.value
+                                            setSourceTypes((prev) => {
+                                                const next = [...prev]
+                                                next[index] = nextType
+                                                return next
+                                            })
+                                            setEditingConfig((prev) => {
+                                                const newSources = [...prev.cameraSources]
+                                                newSources[index] = normalizeSourceByType(
+                                                    newSources[index],
+                                                    nextType
+                                                )
+                                                return {
+                                                    ...prev,
+                                                    cameraSources: newSources,
+                                                }
+                                            })
+                                        }}
+                                        className="source-type-select"
+                                        aria-label={`Camera source type ${index + 1}`}
+                                    >
+                                        <option value="url">URL</option>
+                                        <option value="rtsp">RTSP</option>
+                                    </select>
                                     <input
                                         type="text"
                                         value={url}
@@ -258,6 +338,15 @@ export default function CameraFeeds() {
 
                         {/* Add New Camera */}
                         <div className="add-camera-section">
+                            <select
+                                value={newCameraType}
+                                onChange={(e) => setNewCameraType(e.target.value)}
+                                className="source-type-select"
+                                aria-label="New camera source type"
+                            >
+                                <option value="url">URL</option>
+                                <option value="rtsp">RTSP</option>
+                            </select>
                             <input
                                 type="text"
                                 value={newCameraUrl}
@@ -266,7 +355,11 @@ export default function CameraFeeds() {
                                     if (e.key === 'Enter') handleAddCamera()
                                 }}
                                 className="source-input"
-                                placeholder="Enter new camera URL and press Add"
+                                placeholder={
+                                    newCameraType === 'rtsp'
+                                        ? 'Enter RTSP source (e.g. rtsp://ip:554/stream1)'
+                                        : 'Enter camera URL (e.g. http://ip:8080/video)'
+                                }
                             />
                             <button
                                 onClick={handleAddCamera}
