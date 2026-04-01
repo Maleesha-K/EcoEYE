@@ -8,7 +8,7 @@ COPY control-app/ .
 RUN npm run build
 
 # Stage 2: Runtime
-FROM balenalib/raspberrypi4-64-debian-python:3.11-bookworm-run
+FROM balenalib/raspberrypi5-debian-python:3.11-bookworm-run
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
