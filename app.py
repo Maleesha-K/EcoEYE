@@ -1150,11 +1150,6 @@ def chat():
     return jsonify(chatbot_reply(message)), 200
 
 
-@app.route("/health", methods=["GET"])
-def health_check():
-    return jsonify({"status": "healthy", "time": time.time()}), 200
-
-
 @app.route("/api/setup", methods=["GET"])
 @require_auth
 def get_setup():
