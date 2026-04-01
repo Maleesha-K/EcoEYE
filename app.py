@@ -27,7 +27,15 @@ app = Flask(__name__)
 CORS(app)
 
 APP_DIR = Path(__file__).parent
+# Defensive path lookup: check /app/frontend/dist (Balena) then ./control-app/dist (Local)
 FRONTEND_DIR = APP_DIR / "frontend" / "dist"
+if not FRONTEND_DIR.exists():
+    FRONTEND_DIR = APP_DIR / "control-app" / "dist"
+
+print(f"--- EcoEYE Unified AI Release (Build Fix: C3k2 Compatibility) ---")
+print(f"--- Frontend static directory: {FRONTEND_DIR} (Exists: {FRONTEND_DIR.exists()}) ---")
+if FRONTEND_DIR.exists():
+    print(f"--- Files found in dist: {[f.name for f in FRONTEND_DIR.iterdir()]} ---")
 DATA_DIR = APP_DIR / "data"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 AUTH_FILE = DATA_DIR / "auth.json"
@@ -1232,17 +1240,46 @@ def wifi_connect():
         return jsonify({"error": "SSID is required"}), 400
         
     try:
+        # Pre-cleanup: Remove any existing connection profiles for this SSID
+        # This prevents conflicts if a profile exists but has the wrong password or settings.
+        conn_list = subprocess.run(
+            ["nmcli", "-t", "-f", "NAME,SSID", "connection", "show"],
+            capture_output=True, text=True, timeout=10
+        )
+        if conn_list.returncode == 0:
+            for line in conn_list.stdout.strip().split("\n"):
+                if not line: continue
+                parts = line.split(":")
+                if len(parts) >= 2:
+                    conn_name = parts[0]
+                    conn_ssid = parts[1]
+                    if conn_ssid == ssid or conn_name == ssid:
+                        print(f"Cleaning up existing connection profile: {conn_name}")
+                        subprocess.run(["nmcli", "connection", "delete", conn_name], timeout=10, capture_output=True)
+
+        # Attempt to connect
         cmd = ["nmcli", "device", "wifi", "connect", ssid]
         if password:
             cmd.extend(["password", password])
             
+        print(f"Connecting to WiFi: {ssid}...")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         
         if result.returncode == 0:
-            return jsonify({"status": "success", "message": f"Connected to {ssid}"}), 200
+            # Final verification: check if we are actually connected
+            time.sleep(2) # Give it a moment to settle
+            status_res = wifi_status()
+            status_data = status_res[0].get_json()
+            if status_data.get("connected") and status_data.get("ssid") == ssid:
+                return jsonify({"status": "success", "message": f"Successfully connected to {ssid}"}), 200
+            else:
+                return jsonify({"status": "partial", "message": f"NMCLI reported success, but verification failed. You may need to refresh."}), 200
         else:
-            return jsonify({"status": "error", "message": result.stderr or result.stdout}), 400
+            error_details = result.stderr or result.stdout or "Unknown nmcli error"
+            print(f"WiFi Connection Failed: {error_details}")
+            return jsonify({"status": "error", "message": error_details}), 400
     except Exception as ex:
+        print(f"Internal WiFi Connect Error: {str(ex)}")
         return jsonify({"error": str(ex)}), 500
 
 @app.route("/api/wifi/status", methods=["GET"])
