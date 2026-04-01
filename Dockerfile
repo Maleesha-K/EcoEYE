@@ -26,8 +26,8 @@ RUN install_packages udev v4l-utils libgl1-mesa-glx libglib2.0-0 python3-opencv 
 ENV PYTHONPATH=/app:/usr/lib/python3/dist-packages
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir --upgrade ultralytics
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy all files
 COPY . ./
