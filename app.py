@@ -7,6 +7,7 @@ import os
 import secrets
 import threading
 import time
+from urllib.parse import urlparse
 from functools import wraps
 from pathlib import Path
 
@@ -329,16 +330,35 @@ def send_device_control_signal(device_ip, state):
     2. Generic GPIO: GET /gpio?state=on/off or GET /on or /off
     3. JSON API: POST /api/control with {"state": "on"/"off"}
     """
+    raw_target = str(device_ip or "").strip()
+    if not raw_target:
+        print("✗ Failed to send control signal: empty device target")
+        return False
+
+    # Accept values like "192.168.1.105", "192.168.1.105:80", or
+    # full URLs like "http://192.168.1.105/" saved from UI input.
+    parsed = urlparse(raw_target)
+    device_host = parsed.netloc or parsed.path
+    device_host = device_host.strip().strip("/")
+
+    # If user saved host with path without scheme, keep only host:port part.
+    if "/" in device_host:
+        device_host = device_host.split("/", 1)[0]
+
+    if not device_host:
+        print(f"✗ Failed to send control signal: invalid device target '{raw_target}'")
+        return False
+
     state_str = "on" if state else "off"
     
     # Try endpoints in order of specificity
     endpoints = [
         # IR Remote controller endpoints (primary)
-        f"http://{device_ip}/control?cmd={state_str}",
+        f"http://{device_host}/control?cmd={state_str}",
         # Generic GPIO endpoints
-        f"http://{device_ip}/gpio?state={state_str}",
-        f"http://{device_ip}/{state_str}",
-        f"http://{device_ip}:80/{state_str}",
+        f"http://{device_host}/gpio?state={state_str}",
+        f"http://{device_host}/{state_str}",
+        f"http://{device_host}:80/{state_str}",
     ]
     
     success = False
@@ -346,10 +366,10 @@ def send_device_control_signal(device_ip, state):
     
     for endpoint in endpoints:
         try:
-            resp = requests.get(endpoint, timeout=2)
+            resp = requests.get(endpoint, timeout=6)
             if resp.status_code in [200, 201]:
                 success = True
-                print(f"✓ Control signal sent to {device_ip} ({state_str}) via {endpoint}")
+                print(f"✓ Control signal sent to {device_host} ({state_str}) via {endpoint}")
                 break
         except Exception as e:
             last_error = str(e)
@@ -360,18 +380,18 @@ def send_device_control_signal(device_ip, state):
         try:
             payload = {"state": state_str}
             resp = requests.post(
-                f"http://{device_ip}:80/api/control",
+                f"http://{device_host}:80/api/control",
                 json=payload,
-                timeout=2
+                timeout=6
             )
             if resp.status_code in [200, 201]:
                 success = True
-                print(f"✓ Control signal sent to {device_ip} ({state_str}) via POST /api/control")
+                print(f"✓ Control signal sent to {device_host} ({state_str}) via POST /api/control")
         except Exception as e:
             last_error = str(e)
     
     if not success:
-        print(f"✗ Failed to send control signal to {device_ip}: {last_error}")
+        print(f"✗ Failed to send control signal to {device_host}: {last_error}")
     
     return success
 
