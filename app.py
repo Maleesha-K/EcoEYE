@@ -448,8 +448,15 @@ def _camera_discovery_worker(stop_event):
     while not stop_event.is_set():
         try:
             # 1. Determine local subnet
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                # connect to a dummy address to find local interface ip
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+            except Exception:
+                local_ip = "127.0.0.1"
+            finally:
+                s.close()
             
             # Simple heuristic for common home/hotspot subnets
             # e.g. 172.20.10.x or 192.168.1.x
@@ -1036,8 +1043,6 @@ def get_settings():
     return jsonify({"settings": load_settings()}), 200
 
 
-@app.route("/api/settings", methods=["PUT"])
-@require_auth
 @app.route("/api/wifi/scan", methods=["GET"])
 @require_auth
 def wifi_scan():
@@ -1112,6 +1117,8 @@ def wifi_status():
     except Exception:
         return jsonify({"connected": False}), 200
 
+@app.route("/api/settings", methods=["PUT"])
+@require_auth
 def update_settings():
     payload = request.get_json(silent=True) or {}
     provided = payload.get("settings")
@@ -1135,6 +1142,11 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required"}), 400
     return jsonify(chatbot_reply(message)), 200
+
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "healthy", "time": time.time()}), 200
 
 
 @app.route("/api/setup", methods=["GET"])
