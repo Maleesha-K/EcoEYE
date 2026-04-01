@@ -33,6 +33,14 @@ const normalizeSourceByType = (source, type) => {
     return `http://${value}`
 }
 
+const normalizeCameraNames = (names, sourceCount) => {
+    const normalized = Array.isArray(names) ? [...names] : []
+    while (normalized.length < sourceCount) {
+        normalized.push(`Camera ${normalized.length + 1}`)
+    }
+    return normalized.slice(0, sourceCount)
+}
+
 export default function CameraFeeds() {
     // Stream & Status State
     const [isConnected, setIsConnected] = useState(false)
@@ -56,6 +64,7 @@ export default function CameraFeeds() {
             'http://10.10.1.8:8080/video',
             'http://10.10.1.9:8080/video',
         ],
+        cameraNames: ['Camera 1', 'Camera 2'],
         slotSeconds: 1.0,
         tileWidth: 480,
         tileHeight: 270,
@@ -65,6 +74,7 @@ export default function CameraFeeds() {
 
     const [editingConfig, setEditingConfig] = useState({ ...config })
     const [newCameraUrl, setNewCameraUrl] = useState('')
+    const [newCameraName, setNewCameraName] = useState('')
     const [sourceTypes, setSourceTypes] = useState(config.cameraSources.map(inferSourceType))
     const [newCameraType, setNewCameraType] = useState('url')
 
@@ -84,8 +94,13 @@ export default function CameraFeeds() {
                 const response = await fetch('/api/camera/config')
                 if (response.ok) {
                     const data = await response.json()
-                    setConfig(data)
-                    setEditingConfig(data)
+                    const normalizedNames = normalizeCameraNames(data.cameraNames, (data.cameraSources || []).length)
+                    const normalized = {
+                        ...data,
+                        cameraNames: normalizedNames,
+                    }
+                    setConfig(normalized)
+                    setEditingConfig(normalized)
                     setSourceTypes((data.cameraSources || []).map(inferSourceType))
                 }
             } catch (err) {
@@ -162,13 +177,16 @@ export default function CameraFeeds() {
     const handleAddCamera = () => {
         if (newCameraUrl.trim()) {
             const normalizedSource = normalizeSourceByType(newCameraUrl, newCameraType)
+            const nextName = newCameraName.trim() || `Camera ${editingConfig.cameraSources.length + 1}`
             setEditingConfig((prev) => ({
                 ...prev,
                 cameraSources: [...prev.cameraSources, normalizedSource],
+                cameraNames: [...normalizeCameraNames(prev.cameraNames, prev.cameraSources.length), nextName],
                 cameraCount: prev.cameraSources.length + 1,
             }))
             setSourceTypes((prev) => [...prev, newCameraType])
             setNewCameraUrl('')
+            setNewCameraName('')
             setNewCameraType('url')
         }
     }
@@ -176,10 +194,12 @@ export default function CameraFeeds() {
     const handleRemoveCamera = (index) => {
         setEditingConfig((prev) => {
             const newSources = prev.cameraSources.filter((_, i) => i !== index)
+            const newNames = normalizeCameraNames(prev.cameraNames, prev.cameraSources.length).filter((_, i) => i !== index)
             setSourceTypes((prevTypes) => prevTypes.filter((_, i) => i !== index))
             return {
                 ...prev,
                 cameraSources: newSources,
+                cameraNames: newNames,
                 cameraCount: newSources.length,
             }
         })
@@ -202,6 +222,7 @@ export default function CameraFeeds() {
             const payload = {
                 ...editingConfig,
                 cameraSources: normalizedSources,
+                cameraNames: normalizeCameraNames(editingConfig.cameraNames, normalizedSources.length),
                 cameraCount: normalizedSources.length,
             }
 
@@ -409,6 +430,23 @@ export default function CameraFeeds() {
                         <div className="camera-sources-list">
                             {editingConfig.cameraSources.map((url, index) => (
                                 <div key={index} className="camera-source-item">
+                                    <input
+                                        type="text"
+                                        value={normalizeCameraNames(editingConfig.cameraNames, editingConfig.cameraSources.length)[index]}
+                                        onChange={(e) => {
+                                            const newNames = normalizeCameraNames(
+                                                editingConfig.cameraNames,
+                                                editingConfig.cameraSources.length
+                                            )
+                                            newNames[index] = e.target.value
+                                            setEditingConfig((prev) => ({
+                                                ...prev,
+                                                cameraNames: newNames,
+                                            }))
+                                        }}
+                                        className="camera-name-input"
+                                        placeholder="Camera name"
+                                    />
                                     <select
                                         value={sourceTypes[index] || 'url'}
                                         onChange={(e) => {
@@ -463,6 +501,13 @@ export default function CameraFeeds() {
 
                         {/* Add New Camera */}
                         <div className="add-camera-section">
+                            <input
+                                type="text"
+                                value={newCameraName}
+                                onChange={(e) => setNewCameraName(e.target.value)}
+                                className="camera-name-input"
+                                placeholder="Camera name (e.g. living-room)"
+                            />
                             <select
                                 value={newCameraType}
                                 onChange={(e) => setNewCameraType(e.target.value)}

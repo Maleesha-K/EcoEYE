@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "cameras": [
+    {
+      "id": "3b62e68d-4f57-4a0b-aaa0-0dfa5146f0a5",
+      "ip": "192.168.1.103",
+      "mac": "",
+      "status": "Offline",
+      "name": "livingroom",
+      "username": "admin",
+      "password": "changeme",
+      "zone": "livingroom",
+      "rtsp": "rtsp://admin:changeme@192.168.1.103:554/cam/realmonitor?channel=1&subtype=0",
+      "lastSeen": 1775072117.0117726
+    }
+  ]
+}

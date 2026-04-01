@@ -1,11 +1,29 @@
 {
-  "cameraCount": 1,
+  "cameraCount": 2,
   "cameraSources": [
-    "rtsp://admin:L28DF2D2@192.168.1.103:554/cam/realmonitor?channel=1&subtype=0"
+    "rtsp://admin:L28DF2D2@192.168.1.103:554/cam/realmonitor?channel=1&subtype=0",
+    "rtsp://admin:changeme@192.168.1.103:554/cam/realmonitor?channel=1&subtype=0"
   ],
-  "confidenceThreshold": 0.4,
-  "decisionIntervalSec": 1,
   "slotSeconds": 1,
+  "tileWidth": 480,
   "tileHeight": 270,
-  "tileWidth": 480
+  "decisionIntervalSec": 1,
+  "confidenceThreshold": 0.4,
+  "cameraNames": [
+    "Camera 1",
+    "livingroom"
+  ],
+  "cameras": [
+    {
+      "enabled": true,
+      "id": "3b62e68d-4f57-4a0b-aaa0-0dfa5146f0a5",
+      "ip": "192.168.1.103",
+      "name": "livingroom",
+      "username": "admin",
+      "password": "changeme",
+      "rtsp": "rtsp://admin:changeme@192.168.1.103:554/cam/realmonitor?channel=1&subtype=0",
+      "sourceType": "rtsp",
+      "zone": "livingroom"
+    }
+  ]
 }

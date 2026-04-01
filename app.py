@@ -8,7 +8,7 @@ import secrets
 import threading
 import time
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import quote, unquote, urlparse
 from functools import wraps
 from pathlib import Path
 
@@ -149,6 +149,9 @@ DEFAULT_CAMERA_SETUP = {
     "version": 1,
     "cameras": [],
 }
+
+DEFAULT_RTSP_PORT = "554"
+DEFAULT_RTSP_PATH = "/cam/realmonitor?channel=1&subtype=0"
 
 RUNTIME_STATE = {
     "zoneState": {},
@@ -361,6 +364,44 @@ def save_camera_setup(doc):
         cameras = []
     clean = {"version": 1, "cameras": cameras}
     CAMERA_SETUP_FILE.write_text(json.dumps(clean, indent=2), encoding="utf-8")
+
+
+def build_rtsp_url(ip, username, password, port=DEFAULT_RTSP_PORT, path=DEFAULT_RTSP_PATH):
+    """Build an RTSP URL from camera identity and credentials."""
+    clean_ip = str(ip or "").strip()
+    clean_username = quote(str(username or "admin").strip() or "admin", safe="")
+    clean_password = quote(str(password or "").strip(), safe="")
+    clean_port = str(port or DEFAULT_RTSP_PORT).strip() or DEFAULT_RTSP_PORT
+    clean_path = str(path or DEFAULT_RTSP_PATH).strip() or DEFAULT_RTSP_PATH
+
+    if not clean_path.startswith("/"):
+        clean_path = f"/{clean_path}"
+
+    return f"rtsp://{clean_username}:{clean_password}@{clean_ip}:{clean_port}{clean_path}"
+
+
+def parse_rtsp_url_details(rtsp_url):
+    """Extract ip, username and password from an RTSP URL."""
+    parsed = urlparse(str(rtsp_url or "").strip())
+
+    if parsed.scheme.lower() != "rtsp":
+        return None
+
+    host = parsed.hostname
+    if not host:
+        return None
+
+    username = unquote(parsed.username or "")
+    password = unquote(parsed.password or "")
+
+    if not username or not password:
+        return None
+
+    return {
+        "ip": host,
+        "username": username,
+        "password": password,
+    }
 
 
 def send_device_control_signal(device_ip, state):
@@ -1676,6 +1717,9 @@ def camera_setup_scan():
                 "ip": ip,
                 "mac": prev.get("mac") or data.get("mac") or "",
                 "status": "Online",
+                "name": prev.get("name") or prev.get("zone") or "",
+                "username": prev.get("username") or "admin",
+                "password": prev.get("password") or "",
                 "zone": prev.get("zone") or "",
                 "rtsp": prev.get("rtsp") or "",
                 "lastSeen": data.get("lastSeen", now),
@@ -1691,6 +1735,9 @@ def camera_setup_scan():
                     "ip": ip,
                     "mac": prev.get("mac") or "",
                     "status": "Offline",
+                    "name": prev.get("name") or prev.get("zone") or "",
+                    "username": prev.get("username") or "admin",
+                    "password": prev.get("password") or "",
                     "zone": prev.get("zone") or "",
                     "rtsp": prev.get("rtsp") or "",
                     "lastSeen": prev.get("lastSeen", 0),
@@ -1706,15 +1753,21 @@ def camera_setup_scan():
 def camera_setup_label():
     payload = request.get_json(silent=True) or {}
     ip = str(payload.get("ip", "")).strip()
-    zone = str(payload.get("zone", "")).strip()
+    name = str(payload.get("name", payload.get("zone", ""))).strip()
+    zone = name
+    username = str(payload.get("username", "")).strip() or "admin"
+    password = str(payload.get("password", "")).strip()
     rtsp = str(payload.get("rtsp", "")).strip()
 
     if not ip:
         return jsonify({"error": "ip is required"}), 400
-    if not zone:
-        return jsonify({"error": "zone is required"}), 400
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    if not password:
+        return jsonify({"error": "password is required"}), 400
+
     if not rtsp:
-        return jsonify({"error": "rtsp is required"}), 400
+        rtsp = build_rtsp_url(ip, username, password)
 
     setup_doc = load_camera_setup()
     cameras = setup_doc.get("cameras", [])
@@ -1722,7 +1775,10 @@ def camera_setup_label():
 
     for cam in cameras:
         if str(cam.get("ip", "")).strip() == ip:
+            cam["name"] = name
             cam["zone"] = zone
+            cam["username"] = username
+            cam["password"] = password
             cam["rtsp"] = rtsp
             cam["status"] = cam.get("status") or "Online"
             updated = cam
@@ -1734,7 +1790,10 @@ def camera_setup_label():
             "ip": ip,
             "mac": "",
             "status": "Online",
+            "name": name,
             "zone": zone,
+            "username": username,
+            "password": password,
             "rtsp": rtsp,
             "lastSeen": time.time(),
         }
@@ -1758,17 +1817,143 @@ def camera_setup_export():
         "cameraSources": [cam.get("rtsp", "") for cam in cameras],
         "cameras": [
             {
+                "enabled": True,
                 "id": cam.get("id") or f"cam-{idx + 1}",
+                "name": cam.get("name") or cam.get("zone") or f"Camera {idx + 1}",
                 "ip": cam.get("ip", ""),
+                "username": cam.get("username") or "admin",
+                "password": cam.get("password") or "",
+                "rtsp": cam.get("rtsp", ""),
                 "zone": cam.get("zone", ""),
                 "sourceType": "rtsp",
-                "source": cam.get("rtsp", ""),
-                "enabled": True,
             }
             for idx, cam in enumerate(cameras)
         ],
     }
     return jsonify(export_doc), 200
+
+
+@app.route("/api/camera/setup/add-source", methods=["POST"])
+def camera_setup_add_source():
+    payload = request.get_json(silent=True) or {}
+    rtsp_input = str(payload.get("rtsp", "")).strip()
+    parsed_rtsp = parse_rtsp_url_details(rtsp_input) if rtsp_input else None
+
+    ip = str(payload.get("ip", "")).strip() or (parsed_rtsp.get("ip") if parsed_rtsp else "")
+    name = str(payload.get("name", "")).strip()
+    username = str(payload.get("username", "")).strip() or (parsed_rtsp.get("username") if parsed_rtsp else "") or "admin"
+    password = str(payload.get("password", "")).strip() or (parsed_rtsp.get("password") if parsed_rtsp else "")
+
+    if not ip:
+        return jsonify({"error": "ip is required"}), 400
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    if not password:
+        return jsonify({"error": "password is required"}), 400
+
+    rtsp = rtsp_input or build_rtsp_url(ip, username, password)
+
+    setup_doc = load_camera_setup()
+    cameras = setup_doc.get("cameras", [])
+    selected_camera = None
+
+    for cam in cameras:
+        if str(cam.get("ip", "")).strip() == ip:
+            cam["name"] = name
+            cam["zone"] = name
+            cam["username"] = username
+            cam["password"] = password
+            cam["rtsp"] = rtsp
+            cam["status"] = "Online"
+            cam["lastSeen"] = time.time()
+            selected_camera = cam
+            break
+
+    if selected_camera is None:
+        selected_camera = {
+            "id": str(uuid.uuid4()),
+            "ip": ip,
+            "mac": "",
+            "status": "Online",
+            "name": name,
+            "zone": name,
+            "username": username,
+            "password": password,
+            "rtsp": rtsp,
+            "lastSeen": time.time(),
+        }
+        cameras.append(selected_camera)
+
+    save_camera_setup({"version": 1, "cameras": cameras})
+
+    config = load_camera_config()
+    camera_sources = list(config.get("cameraSources", []))
+    camera_names = list(config.get("cameraNames", []))
+
+    while len(camera_names) < len(camera_sources):
+        camera_names.append(f"Camera {len(camera_names) + 1}")
+
+    if rtsp in camera_sources:
+        source_index = camera_sources.index(rtsp)
+        camera_names[source_index] = name
+    else:
+        camera_sources.append(rtsp)
+        camera_names.append(name)
+
+    updated_config = {
+        **config,
+        "cameraSources": camera_sources,
+        "cameraNames": camera_names,
+        "cameras": [
+            {
+                "enabled": True,
+                "id": cam.get("id") or f"cam-{idx + 1}",
+                "ip": cam.get("ip", ""),
+                "name": cam.get("name") or cam.get("zone") or f"Camera {idx + 1}",
+                "username": cam.get("username") or "admin",
+                "password": cam.get("password") or "",
+                "rtsp": cam.get("rtsp", ""),
+                "sourceType": "rtsp",
+                "zone": cam.get("zone") or "",
+            }
+            for idx, cam in enumerate(cameras)
+            if str(cam.get("rtsp", "")).strip()
+        ],
+        "cameraCount": len(camera_sources),
+    }
+
+    validation_error = validate_camera_config(updated_config)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
+
+    save_camera_config(updated_config)
+
+    # Keep in-memory runtime config in sync for immediate stream updates.
+    ecoeye_framed_yolo.CAMERA_COUNT = int(updated_config.get("cameraCount", len(camera_sources)))
+    ecoeye_framed_yolo.CAMERA_SOURCES = updated_config.get("cameraSources", [])
+    ecoeye_framed_yolo.SLOT_SECONDS = float(updated_config.get("slotSeconds", ecoeye_framed_yolo.SLOT_SECONDS))
+    ecoeye_framed_yolo.TILE_WIDTH = int(updated_config.get("tileWidth", ecoeye_framed_yolo.TILE_WIDTH))
+    ecoeye_framed_yolo.TILE_HEIGHT = int(updated_config.get("tileHeight", ecoeye_framed_yolo.TILE_HEIGHT))
+    ecoeye_framed_yolo.DECISION_INTERVAL_SEC = float(
+        updated_config.get("decisionIntervalSec", ecoeye_framed_yolo.DECISION_INTERVAL_SEC)
+    )
+    ecoeye_framed_yolo.CONFIDENCE_THRESHOLD = float(
+        updated_config.get("confidenceThreshold", ecoeye_framed_yolo.CONFIDENCE_THRESHOLD)
+    )
+
+    restart_stream_processor()
+
+    return jsonify(
+        {
+            "success": True,
+            "camera": selected_camera,
+            "config": {
+                "cameraCount": updated_config.get("cameraCount", 0),
+                "cameraSources": updated_config.get("cameraSources", []),
+                "cameraNames": updated_config.get("cameraNames", []),
+            },
+        }
+    ), 200
 
 
 @app.route("/api/camera/setup/snapshot", methods=["GET"])
@@ -1777,22 +1962,42 @@ def camera_setup_snapshot():
     if not rtsp:
         return jsonify({"error": "rtsp query parameter is required"}), 400
 
-    cap = cv2.VideoCapture(rtsp)
-    try:
-        if not cap.isOpened():
-            return jsonify({"error": "Unable to open camera stream"}), 502
+    # Try plain RTSP first, then force TCP transport for cameras that do not stream over UDP reliably.
+    trial_urls = [rtsp]
+    if "rtsp_transport=" not in rtsp:
+        separator = "&" if "?" in rtsp else "?"
+        trial_urls.append(f"{rtsp}{separator}rtsp_transport=tcp")
 
-        ok, frame = cap.read()
-        if not ok or frame is None:
-            return jsonify({"error": "Unable to capture frame"}), 502
+    last_error = "Unable to open camera stream"
 
-        ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
-        if not ok:
-            return jsonify({"error": "Failed to encode frame"}), 500
+    for trial_url in trial_urls:
+        cap = cv2.VideoCapture(trial_url, cv2.CAP_FFMPEG)
+        try:
+            if not cap.isOpened():
+                last_error = "Unable to open camera stream"
+                continue
 
-        return Response(encoded.tobytes(), mimetype="image/jpeg")
-    finally:
-        cap.release()
+            frame = None
+            ok = False
+            for _ in range(8):
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    break
+                time.sleep(0.05)
+
+            if not ok or frame is None:
+                last_error = "Unable to capture frame"
+                continue
+
+            ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+            if not ok:
+                return jsonify({"error": "Failed to encode frame"}), 500
+
+            return Response(encoded.tobytes(), mimetype="image/jpeg")
+        finally:
+            cap.release()
+
+    return jsonify({"error": last_error}), 502
 
 
 @app.route("/")
