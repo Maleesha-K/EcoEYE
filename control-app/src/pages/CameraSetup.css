@@ -149,22 +149,6 @@
     color: var(--red);
 }
 
-.credentials-row {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.7rem;
-    margin-bottom: 1rem;
-}
-
-.credentials-row label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    color: var(--text-secondary);
-    font-size: 0.83rem;
-}
-
-.credentials-row input,
 .label-controls input {
     width: 100%;
     padding: 0.58rem 0.65rem;
@@ -174,7 +158,6 @@
     color: var(--text-primary);
 }
 
-.credentials-row input:focus,
 .label-controls input:focus {
     outline: none;
     border-color: var(--border-active);
@@ -202,6 +185,9 @@
     overflow: hidden;
     background: #000;
     height: 118px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .snapshot-wrap img {
@@ -210,17 +196,32 @@
     object-fit: cover;
 }
 
+.snapshot-placeholder {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
 .label-controls {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr auto auto;
     align-items: center;
     gap: 0.55rem;
 }
 
 .camera-ip {
-    grid-column: span 3;
+    grid-column: span 4;
     color: var(--text-secondary);
     font-size: 0.83rem;
+}
+
+.rtsp-input {
+    grid-column: span 4;
+}
+
+.preview-error {
+    grid-column: span 4;
+    color: var(--red);
+    font-size: 0.8rem;
 }
 
 .stage-export {
@@ -243,10 +244,6 @@
     .camera-setup-header {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .credentials-row {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .label-row {
