@@ -26,7 +26,14 @@ app = Flask(__name__)
 CORS(app)
 
 APP_DIR = Path(__file__).parent
+# Defensive path lookup: check /app/frontend/dist (Balena) then ./control-app/dist (Local)
 FRONTEND_DIR = APP_DIR / "frontend" / "dist"
+if not FRONTEND_DIR.exists():
+    FRONTEND_DIR = APP_DIR / "control-app" / "dist"
+
+print(f"--- Frontend static directory: {FRONTEND_DIR} (Exists: {FRONTEND_DIR.exists()}) ---")
+if FRONTEND_DIR.exists():
+    print(f"--- Files found in dist: {[f.name for f in FRONTEND_DIR.iterdir()]} ---")
 DATA_DIR = APP_DIR / "data"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 AUTH_FILE = DATA_DIR / "auth.json"
