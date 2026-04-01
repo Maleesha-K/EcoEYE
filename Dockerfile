@@ -3,7 +3,7 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/control-app
 COPY control-app/package*.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 COPY control-app/ .
 RUN npm run build
 
