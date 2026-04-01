@@ -23,6 +23,7 @@ const navItems = [
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/predictions', label: 'AI Predictions', icon: Brain },
     { path: '/camera-feeds', label: 'Camera Feeds', icon: Camera },
+    { path: '/camera-setup', label: 'Camera Setup', icon: Camera },
     { path: '/settings', label: 'Settings', icon: Settings },
 ]
 

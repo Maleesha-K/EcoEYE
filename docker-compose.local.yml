@@ -1,0 +1,28 @@
+services:
+  ecoeye-app:
+    build: .
+    privileged: true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - APP_BIND=0.0.0.0
+      - APP_PORT=80
+    volumes:
+      - ecoeye-data:/app/data
+    ports:
+      - "5000:80"
+    restart: unless-stopped
+
+  browser:
+    image: bh.cr/balenalabs/browser-aarch64:v2.7.0
+    privileged: true
+    environment:
+      - LAUNCH_URL=http://ecoeye-app:80
+      - ENABLE_GPU=1
+      - CURSOR=1
+      - SHOW_CURSOR=1
+    depends_on:
+      - ecoeye-app
+    restart: unless-stopped
+
+volumes:
+  ecoeye-data:
