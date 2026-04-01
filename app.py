@@ -31,6 +31,7 @@ FRONTEND_DIR = APP_DIR / "frontend" / "dist"
 if not FRONTEND_DIR.exists():
     FRONTEND_DIR = APP_DIR / "control-app" / "dist"
 
+print(f"--- EcoEYE Unified AI Release (Build Fix: C3k2 Compatibility) ---")
 print(f"--- Frontend static directory: {FRONTEND_DIR} (Exists: {FRONTEND_DIR.exists()}) ---")
 if FRONTEND_DIR.exists():
     print(f"--- Files found in dist: {[f.name for f in FRONTEND_DIR.iterdir()]} ---")
