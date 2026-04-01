@@ -1,12 +1,13 @@
 {
-  "cameraCount": 2,
+  "cameraCount": 3,
   "cameraSources": [
     "http://10.10.1.8:8080/video",
-    "http://10.10.12.41:8080/video"
+    "http://10.10.12.41:8080/video",
+    "http://10.10.12.1:8080/video"
   ],
-  "slotSeconds": 1.0,
-  "tileWidth": 480,
+  "confidenceThreshold": 0.4,
+  "decisionIntervalSec": 1,
+  "slotSeconds": 1,
   "tileHeight": 270,
-  "decisionIntervalSec": 1.0,
-  "confidenceThreshold": 0.4
+  "tileWidth": 480
 }

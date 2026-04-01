@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import hashlib
 import hmac
 import json
@@ -118,13 +118,13 @@ DEFAULT_CAMERA_CONFIG = {
     "cameraCount": 2,
     "cameraSources": [
         "http://10.10.1.8:8080/video",
-        "http://10.10.1.9:8080/video"
+        "http://10.10.1.9:8080/video",
     ],
     "slotSeconds": 1.0,
     "tileWidth": 480,
     "tileHeight": 270,
     "decisionIntervalSec": 1.0,
-    "confidenceThreshold": 0.4
+    "confidenceThreshold": 0.4,
 }
 
 RUNTIME_STATE = {
@@ -223,6 +223,9 @@ def ensure_data_files():
     if not SETUP_FILE.exists():
         SETUP_FILE.write_text(json.dumps(DEFAULT_SETUP, indent=2), encoding="utf-8")
 
+    if not CAMERA_CONFIG_FILE.exists():
+        CAMERA_CONFIG_FILE.write_text(json.dumps(DEFAULT_CAMERA_CONFIG, indent=2), encoding="utf-8")
+
 
 def hash_password(password: str, salt: str) -> str:
     derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120000)
@@ -239,9 +242,11 @@ def save_auth_doc(auth_doc):
 
 
 def load_camera_config():
+    """Load camera config from JSON file or return defaults."""
     ensure_data_files()
     try:
         config = json.loads(CAMERA_CONFIG_FILE.read_text(encoding="utf-8"))
+        # Merge with defaults to ensure all keys exist
         merged = dict(DEFAULT_CAMERA_CONFIG)
         merged.update(config)
         return merged
@@ -250,53 +255,53 @@ def load_camera_config():
 
 
 def save_camera_config(config_doc):
+    """Save camera config to JSON file."""
     CAMERA_CONFIG_FILE.write_text(json.dumps(config_doc, indent=2), encoding="utf-8")
 
 
 def validate_camera_config(config):
+    """Validate camera config structure."""
     if not isinstance(config, dict):
-        return "Config must be an object"
-
-    required_keys = [
-        "cameraCount",
-        "cameraSources",
-        "slotSeconds",
-        "tileWidth",
-        "tileHeight",
-        "decisionIntervalSec",
-        "confidenceThreshold",
-    ]
+        return "Config must be a dict"
+    
+    required_keys = ["cameraCount", "cameraSources", "slotSeconds", "tileWidth", 
+                     "tileHeight", "decisionIntervalSec", "confidenceThreshold"]
     for key in required_keys:
         if key not in config:
             return f"Missing required key: {key}"
-
-    if not isinstance(config.get("cameraSources"), list) or len(config.get("cameraSources", [])) < 1:
-        return "cameraSources must be a non-empty list"
-
-    if int(config.get("cameraCount", 0)) != len(config.get("cameraSources", [])):
-        return "cameraCount must match number of cameraSources"
-
+    
+    if not isinstance(config.get("cameraSources"), list):
+        return "cameraSources must be a list"
+    
+    if len(config.get("cameraSources", [])) < 1:
+        return "At least one camera source required"
+    
+    if config.get("cameraCount", 0) != len(config.get("cameraSources", [])):
+        return "cameraCount must match length of cameraSources"
+    
     return None
 
 
 def restart_stream_processor():
+    """Stop current stream processor and start a new one."""
     global STREAM_THREAD, STREAM_STOP_EVENT
-
+    
+    # Signal stop to current thread
     if STREAM_STOP_EVENT is not None:
         STREAM_STOP_EVENT.set()
-
+    
+    # Wait for thread to finish (max 2 seconds)
     if STREAM_THREAD is not None and STREAM_THREAD.is_alive():
         STREAM_THREAD.join(timeout=2.0)
-
+    
+    # Clear stream state
     with STREAM_LOCK:
         STREAM_STATE["jpeg"] = None
         STREAM_STATE["zoneStatus"] = {}
         STREAM_STATE["cameraStatus"] = {}
         STREAM_STATE["lastFrameAt"] = 0.0
-        STREAM_STATE["runtimeError"] = ""
-
-    STREAM_THREAD = None
-    STREAM_STOP_EVENT = None
+    
+    # Start new thread
     ensure_stream_runtime_started()
 
 
@@ -1004,34 +1009,48 @@ def camera_zone_status():
         }
     ), 200
 
+
 @app.route("/api/camera/config", methods=["GET"])
 def get_camera_config():
+    """Get current YOLO camera configuration."""
     config = load_camera_config()
     return jsonify(config), 200
 
 
 @app.route("/api/camera/config", methods=["PUT"])
 def update_camera_config():
+    """Update YOLO camera configuration and restart stream processor."""
     try:
-        payload = request.get_json(silent=True) or {}
-
+        payload = request.get_json()
+        if not payload:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        # Validate config
         error_msg = validate_camera_config(payload)
         if error_msg:
             return jsonify({"error": error_msg}), 400
-
+        
+        # Save to file
         save_camera_config(payload)
-
-        ecoeye_framed_yolo.CAMERA_COUNT = int(payload.get("cameraCount", 1))
-        ecoeye_framed_yolo.CAMERA_SOURCES = list(payload.get("cameraSources", []))
+        
+        # Update ecoeye_framed_yolo module globals
+        ecoeye_framed_yolo.CAMERA_COUNT = payload.get("cameraCount", 2)
+        ecoeye_framed_yolo.CAMERA_SOURCES = payload.get("cameraSources", [])
         ecoeye_framed_yolo.SLOT_SECONDS = float(payload.get("slotSeconds", 1.0))
         ecoeye_framed_yolo.TILE_WIDTH = int(payload.get("tileWidth", 480))
         ecoeye_framed_yolo.TILE_HEIGHT = int(payload.get("tileHeight", 270))
         ecoeye_framed_yolo.DECISION_INTERVAL_SEC = float(payload.get("decisionIntervalSec", 1.0))
         ecoeye_framed_yolo.CONFIDENCE_THRESHOLD = float(payload.get("confidenceThreshold", 0.4))
-
+        
+        # Restart stream processor with new config
         restart_stream_processor()
-
-        return jsonify({"success": True, "config": payload}), 200
+        
+        return jsonify({
+            "success": True,
+            "message": "Camera configuration updated and stream restarted",
+            "config": payload
+        }), 200
+    
     except Exception as ex:
         return jsonify({"error": str(ex)}), 500
 
@@ -1070,10 +1089,3 @@ if __name__ == "__main__":
     print("=" * 60)
 
     app.run(host=bind_host, port=bind_port, debug=False)
-
-
-
-
-
-
-
