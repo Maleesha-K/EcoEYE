@@ -194,6 +194,7 @@ export default function CameraFeeds() {
     const configuredCameraTabs = (editingConfig.cameraSources || []).map((_, index) => `cam${index + 1}`)
     const liveCameraTabs = Object.keys(zoneStatus || {}).sort((a, b) => cameraKeyToIndex(a) - cameraKeyToIndex(b))
     const cameraTabs = configuredCameraTabs.length > 0 ? configuredCameraTabs : liveCameraTabs
+    const hasConfiguredCameras = configuredCameraTabs.length > 0
 
     useEffect(() => {
         if (cameraTabs.length === 0) {
@@ -783,48 +784,59 @@ export default function CameraFeeds() {
                     </div>
                 )}
 
-                <div className="stream-container glass-card">
-                    {isLoading && (
+                {!hasConfiguredCameras ? (
+                    <div className="stream-container glass-card">
                         <div className="stream-loading">
-                            <RefreshCw className="spin" size={32} />
-                            <p>Connecting to {selectedCameraKey.toUpperCase()} feed...</p>
-                        </div>
-                    )}
-                    {error && (
-                        <div className="stream-error">
                             <AlertCircle size={24} />
-                            <p>{error}</p>
+                            <p>No camera configured. Add and save at least one camera source.</p>
                         </div>
-                    )}
-                    <img
-                        src={`${streamUrl}/${selectedCameraKey}${streamUrl.includes('?') ? '&' : '?'}t=${streamNonce}`}
-                        alt={`${selectedCameraKey.toUpperCase()} footage`}
-                        className="stream-video"
-                        onLoad={() => {
-                            setIsLoading(false)
-                            setIsConnected(true)
-                            setError('')
-                        }}
-                        onError={() => {
-                            setIsConnected(false)
-                            setError(`Failed to connect to ${selectedCameraKey.toUpperCase()} stream. Make sure the EcoEYE backend is running.`)
-                            setIsLoading(false)
-                        }}
-                        style={{ display: isLoading || error ? 'none' : 'block' }}
-                    />
-                </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="stream-container glass-card">
+                            {isLoading && (
+                                <div className="stream-loading">
+                                    <RefreshCw className="spin" size={32} />
+                                    <p>Connecting to {selectedCameraKey.toUpperCase()} feed...</p>
+                                </div>
+                            )}
+                            {error && (
+                                <div className="stream-error">
+                                    <AlertCircle size={24} />
+                                    <p>{error}</p>
+                                </div>
+                            )}
+                            <img
+                                src={`${streamUrl}/${selectedCameraKey}${streamUrl.includes('?') ? '&' : '?'}t=${streamNonce}`}
+                                alt={`${selectedCameraKey.toUpperCase()} footage`}
+                                className="stream-video"
+                                onLoad={() => {
+                                    setIsLoading(false)
+                                    setIsConnected(true)
+                                    setError('')
+                                }}
+                                onError={() => {
+                                    setIsConnected(false)
+                                    setError(`Failed to connect to ${selectedCameraKey.toUpperCase()} stream. Make sure the EcoEYE backend is running.`)
+                                    setIsLoading(false)
+                                }}
+                                style={{ display: isLoading || error ? 'none' : 'block' }}
+                            />
+                        </div>
 
-                {/* Stream Refresh Control */}
-                <div className="stream-controls glass-card">
-                    <button
-                        onClick={handleRefresh}
-                        className="btn-secondary"
-                        title="Refresh video stream"
-                    >
-                        <RefreshCw size={16} />
-                        Refresh Stream
-                    </button>
-                </div>
+                        {/* Stream Refresh Control */}
+                        <div className="stream-controls glass-card">
+                            <button
+                                onClick={handleRefresh}
+                                className="btn-secondary"
+                                title="Refresh video stream"
+                            >
+                                <RefreshCw size={16} />
+                                Refresh Stream
+                            </button>
+                        </div>
+                    </>
+                )}
             </motion.section>
 
             {/* Zone Occupancy Status */}

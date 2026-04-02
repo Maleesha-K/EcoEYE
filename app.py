@@ -200,6 +200,18 @@ def _stream_worker(stop_event):
 def ensure_stream_runtime_started():
     global STREAM_THREAD, STREAM_STOP_EVENT
 
+    config = load_camera_config()
+    sources = config.get("cameraSources", [])
+    if not isinstance(sources, list) or len(sources) == 0:
+        with STREAM_LOCK:
+            STREAM_STATE["jpeg"] = None
+            STREAM_STATE["frame"] = None
+            STREAM_STATE["zoneStatus"] = {}
+            STREAM_STATE["cameraStatus"] = {}
+            STREAM_STATE["lastFrameAt"] = 0.0
+            STREAM_STATE["runtimeError"] = "No camera sources configured"
+        return
+
     if STREAM_THREAD is not None and STREAM_THREAD.is_alive():
         return
 
@@ -378,9 +390,6 @@ def validate_camera_config(config):
     if not isinstance(config.get("cameraSources"), list):
         return "cameraSources must be a list"
     
-    if len(config.get("cameraSources", [])) < 1:
-        return "At least one camera source required"
-    
     if config.get("cameraCount", 0) != len(config.get("cameraSources", [])):
         return "cameraCount must match length of cameraSources"
 
@@ -506,9 +515,17 @@ def restart_stream_processor():
         STREAM_STATE["zoneStatus"] = {}
         STREAM_STATE["cameraStatus"] = {}
         STREAM_STATE["lastFrameAt"] = 0.0
+        STREAM_STATE["runtimeError"] = ""
     
-    # Start new thread
-    ensure_stream_runtime_started()
+    # Start new thread only if at least one source is configured.
+    config = load_camera_config()
+    sources = config.get("cameraSources", [])
+    if isinstance(sources, list) and len(sources) > 0:
+        ensure_stream_runtime_started()
+    else:
+        with STREAM_LOCK:
+            STREAM_STATE["runtimeError"] = "No camera sources configured"
+
     ensure_control_bridge_started()
     ensure_discovery_started()
 
@@ -1527,6 +1544,12 @@ def camera_zone_status():
         camera_status = dict(STREAM_STATE.get("cameraStatus", {}))
         last_frame_at = float(STREAM_STATE.get("lastFrameAt", 0.0) or 0.0)
         runtime_error = str(STREAM_STATE.get("runtimeError", ""))
+
+    config = load_camera_config()
+    sources = config.get("cameraSources", [])
+    allowed_keys = {f"cam{i+1}" for i in range(len(sources))}
+    zone_status = {k: v for k, v in zone_status.items() if k in allowed_keys}
+    camera_status = {k: v for k, v in camera_status.items() if k in allowed_keys}
 
     return jsonify(
         {
