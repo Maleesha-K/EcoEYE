@@ -3,6 +3,7 @@ import base64
 import hashlib
 import hmac
 import json
+import math
 import os
 import secrets
 import threading
@@ -149,6 +150,7 @@ MQTT_CLIENT = None
 STREAM_LOCK = threading.Lock()
 STREAM_STATE = {
     "jpeg": None,
+    "frame": None,
     "zoneStatus": {},
     "cameraStatus": {},
     "lastFrameAt": 0.0,
@@ -180,6 +182,7 @@ def _stream_state_callback(frame_bgr, zone_status, camera_status):
 
     with STREAM_LOCK:
         STREAM_STATE["jpeg"] = encoded.tobytes()
+        STREAM_STATE["frame"] = frame_bgr.copy()
         STREAM_STATE["zoneStatus"] = zone_status
         STREAM_STATE["cameraStatus"] = camera_status
         STREAM_STATE["lastFrameAt"] = time.time()
@@ -216,6 +219,84 @@ def generate_mjpeg_stream():
             time.sleep(0.05)
             continue
 
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n"
+            b"Content-Length: " + str(len(jpeg)).encode("ascii") + b"\r\n\r\n" + jpeg + b"\r\n"
+        )
+
+        time.sleep(0.03)
+
+
+def _build_tile_positions(num_cams, tile_w, tile_h):
+    cols = int(math.ceil(math.sqrt(max(1, num_cams))))
+    rows = int(math.ceil(num_cams / cols))
+    positions = []
+    for i in range(num_cams):
+        r = i // cols
+        c = i % cols
+        positions.append((c * tile_w, r * tile_h, tile_w, tile_h))
+    return positions
+
+
+def _camera_key_to_index(cam_key):
+    key = str(cam_key or "").strip().lower()
+    if key.startswith("cam"):
+        try:
+            idx = int(key[3:]) - 1
+            return idx if idx >= 0 else -1
+        except Exception:
+            return -1
+    try:
+        idx = int(key)
+        return idx if idx >= 0 else -1
+    except Exception:
+        return -1
+
+
+def generate_mjpeg_stream_for_camera(cam_key):
+    cam_index = _camera_key_to_index(cam_key)
+    if cam_index < 0:
+        # Fallback to full stream if selector is malformed.
+        yield from generate_mjpeg_stream()
+        return
+
+    config = load_camera_config()
+    sources = config.get("cameraSources", [])
+    total_cameras = max(1, len(sources))
+    tile_w = int(config.get("tileWidth", 480))
+    tile_h = int(config.get("tileHeight", 270))
+    positions = _build_tile_positions(total_cameras, tile_w, tile_h)
+
+    safe_index = min(cam_index, total_cameras - 1)
+    x0, y0, w, h = positions[safe_index]
+
+    while True:
+        ensure_stream_runtime_started()
+
+        with STREAM_LOCK:
+            frame = STREAM_STATE.get("frame")
+
+        if frame is None:
+            time.sleep(0.05)
+            continue
+
+        frame_copy = frame.copy()
+        frame_h, frame_w = frame_copy.shape[:2]
+        x1 = min(x0 + w, frame_w)
+        y1 = min(y0 + h, frame_h)
+
+        if x0 >= frame_w or y0 >= frame_h or x1 <= x0 or y1 <= y0:
+            tile = frame_copy
+        else:
+            tile = frame_copy[y0:y1, x0:x1]
+
+        ok, encoded = cv2.imencode(".jpg", tile, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        if not ok:
+            time.sleep(0.03)
+            continue
+
+        jpeg = encoded.tobytes()
         yield (
             b"--frame\r\n"
             b"Content-Type: image/jpeg\r\n"
@@ -421,6 +502,7 @@ def restart_stream_processor():
     # Clear stream state
     with STREAM_LOCK:
         STREAM_STATE["jpeg"] = None
+        STREAM_STATE["frame"] = None
         STREAM_STATE["zoneStatus"] = {}
         STREAM_STATE["cameraStatus"] = {}
         STREAM_STATE["lastFrameAt"] = 0.0
@@ -1428,6 +1510,12 @@ def get_discovered_cameras():
 def camera_video_feed():
     ensure_stream_runtime_started()
     return Response(generate_mjpeg_stream(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.route("/api/camera/video-feed/<cam_key>", methods=["GET"])
+def camera_video_feed_single(cam_key):
+    ensure_stream_runtime_started()
+    return Response(generate_mjpeg_stream_for_camera(cam_key), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 @app.route("/api/camera/zone-status", methods=["GET"])

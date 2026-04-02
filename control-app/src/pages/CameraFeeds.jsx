@@ -49,8 +49,9 @@ export default function CameraFeeds() {
     const [isConnected, setIsConnected] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState('')
-    const [streamUrl, setStreamUrl] = useState('/api/camera/video-feed')
+    const [streamUrl] = useState('/api/camera/video-feed')
     const [streamNonce, setStreamNonce] = useState(Date.now())
+    const [selectedCameraKey, setSelectedCameraKey] = useState('cam1')
     const [zoneStatus, setZoneStatus] = useState({})
     const [cameraStatus, setCameraStatus] = useState({})
 
@@ -189,6 +190,25 @@ export default function CameraFeeds() {
             setNewCameraType('url')
         }
     }
+
+    const configuredCameraTabs = (editingConfig.cameraSources || []).map((_, index) => `cam${index + 1}`)
+    const liveCameraTabs = Object.keys(zoneStatus || {}).sort((a, b) => cameraKeyToIndex(a) - cameraKeyToIndex(b))
+    const cameraTabs = configuredCameraTabs.length > 0 ? configuredCameraTabs : liveCameraTabs
+
+    useEffect(() => {
+        if (cameraTabs.length === 0) {
+            return
+        }
+        if (!cameraTabs.includes(selectedCameraKey)) {
+            setSelectedCameraKey(cameraTabs[0])
+        }
+    }, [cameraTabs, selectedCameraKey])
+
+    useEffect(() => {
+        setIsLoading(true)
+        setError('')
+        setStreamNonce(Date.now())
+    }, [selectedCameraKey])
 
     const handleRemoveCamera = (index) => {
         setEditingConfig((prev) => {
@@ -748,11 +768,26 @@ export default function CameraFeeds() {
 
             {/* Video Stream Section */}
             <motion.section className="video-stream-section" variants={itemVariants}>
+                {cameraTabs.length > 0 && (
+                    <div className="camera-feed-selector glass-card">
+                        {cameraTabs.map((camKey) => (
+                            <button
+                                key={camKey}
+                                onClick={() => setSelectedCameraKey(camKey)}
+                                className={`camera-feed-tab ${selectedCameraKey === camKey ? 'active' : ''}`}
+                                type="button"
+                            >
+                                {camKey.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 <div className="stream-container glass-card">
                     {isLoading && (
                         <div className="stream-loading">
                             <RefreshCw className="spin" size={32} />
-                            <p>Connecting to camera feed...</p>
+                            <p>Connecting to {selectedCameraKey.toUpperCase()} feed...</p>
                         </div>
                     )}
                     {error && (
@@ -762,8 +797,8 @@ export default function CameraFeeds() {
                         </div>
                     )}
                     <img
-                        src={`${streamUrl}${streamUrl.includes('?') ? '&' : '?'}t=${streamNonce}`}
-                        alt="Overall camera footage"
+                        src={`${streamUrl}/${selectedCameraKey}${streamUrl.includes('?') ? '&' : '?'}t=${streamNonce}`}
+                        alt={`${selectedCameraKey.toUpperCase()} footage`}
                         className="stream-video"
                         onLoad={() => {
                             setIsLoading(false)
@@ -772,7 +807,7 @@ export default function CameraFeeds() {
                         }}
                         onError={() => {
                             setIsConnected(false)
-                            setError('Failed to connect to video stream. Make sure the EcoEYE backend is running.')
+                            setError(`Failed to connect to ${selectedCameraKey.toUpperCase()} stream. Make sure the EcoEYE backend is running.`)
                             setIsLoading(false)
                         }}
                         style={{ display: isLoading || error ? 'none' : 'block' }}
