@@ -12,16 +12,22 @@ from urllib.parse import quote, unquote, urlparse
 from functools import wraps
 from pathlib import Path
 
-import cv2
+try:
+    import cv2
+except Exception:
+    cv2 = None
 import requests
 import socket
 import subprocess
-import ecoeye_framed_yolo
+try:
+    import ecoeye_framed_yolo
+    from ecoeye_framed_yolo import run_stream_processor
+except Exception:
+    ecoeye_framed_yolo = None
+    run_stream_processor = None
 from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 from paho.mqtt import client as mqtt_client
-
-from ecoeye_framed_yolo import run_stream_processor
 
 app = Flask(__name__)
 CORS(app)
@@ -43,6 +49,7 @@ SETUP_FILE = DATA_DIR / "setup.json"
 CAMERA_CONFIG_FILE = DATA_DIR / "camera-config.json"
 CAMERA_SETUP_FILE = DATA_DIR / "camera-setup.json"
 ZONE_DEVICES_FILE = DATA_DIR / "zone-devices.json"
+ENERGY_HISTORY_FILE = DATA_DIR / "energy-history.json"
 
 APP_VERSION = "3.0.0"
 try:
@@ -94,7 +101,7 @@ DEFAULT_SETUP = {
             "target": "esp32/lounge/cmd",
             "onCommand": "{\"power\":\"on\"}",
             "offCommand": "{\"power\":\"off\"}",
-            "meta": {},
+            "meta": {"wattageW": 60},
         }
     ],
     "zoneMappings": [
@@ -162,6 +169,13 @@ RUNTIME_STATE = {
 }
 RUNTIME_LOCK = threading.Lock()
 MQTT_CLIENT = None
+ENERGY_HISTORY_LOCK = threading.Lock()
+
+DEFAULT_ENERGY_HISTORY = {
+    "version": 1,
+    "events": [],
+    "openSessions": {},
+}
 
 STREAM_LOCK = threading.Lock()
 STREAM_STATE = {
@@ -191,6 +205,8 @@ CAMERA_DISCOVERY_STOP_EVENT = None
 
 
 def _stream_state_callback(frame_bgr, zone_status, camera_status):
+    if cv2 is None:
+        return
     ok, encoded = cv2.imencode(".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
     if not ok:
         return
@@ -204,6 +220,10 @@ def _stream_state_callback(frame_bgr, zone_status, camera_status):
 
 
 def _stream_worker(stop_event):
+    if run_stream_processor is None:
+        with STREAM_LOCK:
+            STREAM_STATE["runtimeError"] = "Camera stream processor unavailable in this environment"
+        return
     try:
         run_stream_processor(state_callback=_stream_state_callback, stop_event=stop_event, start_inference=True)
     except Exception as ex:
@@ -223,6 +243,8 @@ def ensure_stream_runtime_started():
 
 
 def generate_mjpeg_stream():
+    if cv2 is None or run_stream_processor is None:
+        return
     while True:
         ensure_stream_runtime_started()
 
@@ -269,6 +291,9 @@ def ensure_data_files():
 
     if not CAMERA_SETUP_FILE.exists():
         CAMERA_SETUP_FILE.write_text(json.dumps(DEFAULT_CAMERA_SETUP, indent=2), encoding="utf-8")
+
+    if not ENERGY_HISTORY_FILE.exists():
+        ENERGY_HISTORY_FILE.write_text(json.dumps(DEFAULT_ENERGY_HISTORY, indent=2), encoding="utf-8")
 
 
 def hash_password(password: str, salt: str) -> str:
@@ -706,6 +731,17 @@ def merge_control(existing_control):
     return merged
 
 
+def normalize_device_meta(meta):
+    normalized = meta if isinstance(meta, dict) else {}
+    wattage = normalized.get("wattageW", normalized.get("wattage", 0))
+    try:
+        wattage_value = max(0.0, float(wattage))
+    except Exception:
+        wattage_value = 0.0
+    normalized["wattageW"] = wattage_value
+    return normalized
+
+
 def load_setup():
     ensure_data_files()
     existing = json.loads(SETUP_FILE.read_text(encoding="utf-8"))
@@ -713,7 +749,12 @@ def load_setup():
     merged.update(existing)
 
     merged["cameras"] = existing.get("cameras") if isinstance(existing.get("cameras"), list) else list(DEFAULT_SETUP["cameras"])
-    merged["devices"] = existing.get("devices") if isinstance(existing.get("devices"), list) else list(DEFAULT_SETUP["devices"])
+    devices = existing.get("devices") if isinstance(existing.get("devices"), list) else list(DEFAULT_SETUP["devices"])
+    merged["devices"] = [
+        {**dev, "meta": normalize_device_meta(dev.get("meta"))}
+        for dev in devices
+        if isinstance(dev, dict)
+    ]
     merged["zoneMappings"] = existing.get("zoneMappings") if isinstance(existing.get("zoneMappings"), list) else list(DEFAULT_SETUP["zoneMappings"])
     merged["control"] = merge_control(existing.get("control"))
 
@@ -722,6 +763,211 @@ def load_setup():
 
 def save_setup(setup_doc):
     SETUP_FILE.write_text(json.dumps(setup_doc, indent=2), encoding="utf-8")
+
+
+def load_energy_history():
+    ensure_data_files()
+    try:
+        history = json.loads(ENERGY_HISTORY_FILE.read_text(encoding="utf-8"))
+        if not isinstance(history, dict):
+            history = dict(DEFAULT_ENERGY_HISTORY)
+    except Exception:
+        history = dict(DEFAULT_ENERGY_HISTORY)
+
+    events = history.get("events") if isinstance(history.get("events"), list) else []
+    open_sessions = history.get("openSessions") if isinstance(history.get("openSessions"), dict) else {}
+
+    trimmed_events = [event for event in events if isinstance(event, dict)][-1000:]
+    cleaned_sessions = {
+        str(device_id): session
+        for device_id, session in open_sessions.items()
+        if isinstance(session, dict)
+    }
+
+    return {
+        "version": 1,
+        "events": trimmed_events,
+        "openSessions": cleaned_sessions,
+    }
+
+
+def save_energy_history(history_doc):
+    clean = load_energy_history()
+    if isinstance(history_doc, dict):
+        if isinstance(history_doc.get("events"), list):
+            clean["events"] = [event for event in history_doc["events"] if isinstance(event, dict)][-1000:]
+        if isinstance(history_doc.get("openSessions"), dict):
+            clean["openSessions"] = {
+                str(device_id): session
+                for device_id, session in history_doc["openSessions"].items()
+                if isinstance(session, dict)
+            }
+
+    ENERGY_HISTORY_FILE.write_text(json.dumps(clean, indent=2), encoding="utf-8")
+
+
+def get_device_wattage(device):
+    meta = device.get("meta") if isinstance(device, dict) else {}
+    if not isinstance(meta, dict):
+        meta = {}
+    wattage = meta.get("wattageW", meta.get("wattage", 0))
+    try:
+        return max(0.0, float(wattage))
+    except Exception:
+        return 0.0
+
+
+def create_energy_event(device, started_at, ended_at, wattage=None):
+    device_id = str(device.get("id", "")).strip()
+    device_name = str(device.get("name", device_id)).strip() or device_id
+    watts = get_device_wattage(device) if wattage is None else max(0.0, float(wattage))
+    duration_seconds = max(0.0, float(ended_at) - float(started_at))
+    energy_joules = watts * duration_seconds
+    energy_kwh = energy_joules / 3600000.0
+    timestamp = int(float(ended_at))
+
+    return {
+        "timestamp": timestamp,
+        "month": time.strftime("%Y-%m", time.localtime(timestamp)),
+        "deviceId": device_id,
+        "deviceName": device_name,
+        "wattageW": round(watts, 2),
+        "durationSeconds": round(duration_seconds, 2),
+        "energyJoules": round(energy_joules, 2),
+        "energyKwh": round(energy_kwh, 6),
+    }
+
+
+def record_energy_transition(device, turn_on, transition_at):
+    device_id = str(device.get("id", "")).strip()
+    if not device_id:
+        return None
+
+    wattage = get_device_wattage(device)
+
+    with ENERGY_HISTORY_LOCK:
+        history = load_energy_history()
+        open_sessions = history.setdefault("openSessions", {})
+        events = history.setdefault("events", [])
+
+        if turn_on:
+            if device_id not in open_sessions:
+                open_sessions[device_id] = {
+                    "startedAt": float(transition_at),
+                    "deviceName": str(device.get("name", device_id)).strip() or device_id,
+                    "wattageW": wattage,
+                }
+                save_energy_history(history)
+            return None
+
+        session = open_sessions.pop(device_id, None)
+        if not session:
+            save_energy_history(history)
+            return None
+
+        event = create_energy_event(
+            device,
+            session.get("startedAt", transition_at),
+            transition_at,
+            wattage=session.get("wattageW", wattage),
+        )
+        events.append(event)
+        history["events"] = events[-1000:]
+        save_energy_history(history)
+        return event
+
+
+def aggregate_energy_history(history_doc, rate_per_kwh=0.15):
+    months = {}
+    recent_events = []
+
+    for event in history_doc.get("events", []):
+        if not isinstance(event, dict):
+            continue
+        timestamp_value = float(event.get("timestamp", 0) or 0)
+        month_key = str(event.get("month") or time.strftime("%Y-%m", time.localtime(timestamp_value)))
+        bucket = months.setdefault(
+            month_key,
+            {
+                "month": month_key,
+                "label": month_key,
+                "totalJoules": 0.0,
+                "totalKwh": 0.0,
+                "estimatedBill": 0.0,
+                "sessions": 0,
+                "devices": {},
+            },
+        )
+
+        energy_joules = float(event.get("energyJoules", 0) or 0)
+        energy_kwh = float(event.get("energyKwh", energy_joules / 3600000.0) or 0)
+        device_id = str(event.get("deviceId", "unknown"))
+        device_name = str(event.get("deviceName", device_id))
+
+        bucket["totalJoules"] += energy_joules
+        bucket["totalKwh"] += energy_kwh
+        bucket["sessions"] += 1
+        bucket["estimatedBill"] += energy_kwh * float(rate_per_kwh)
+
+        device_bucket = bucket["devices"].setdefault(
+            device_id,
+            {
+                "deviceId": device_id,
+                "deviceName": device_name,
+                "totalJoules": 0.0,
+                "totalKwh": 0.0,
+                "sessions": 0,
+                "wattageW": float(event.get("wattageW", 0) or 0),
+            },
+        )
+        device_bucket["deviceName"] = device_name
+        device_bucket["wattageW"] = float(event.get("wattageW", device_bucket.get("wattageW", 0)) or 0)
+        device_bucket["totalJoules"] += energy_joules
+        device_bucket["totalKwh"] += energy_kwh
+        device_bucket["sessions"] += 1
+
+        recent_events.append(event)
+
+    month_list = []
+    for month_key in sorted(months.keys()):
+        month_doc = months[month_key]
+        devices = list(month_doc["devices"].values())
+        devices.sort(key=lambda item: item["totalJoules"], reverse=True)
+        top_device = devices[0] if devices else None
+        month_doc["devices"] = devices
+        month_doc["topDevice"] = top_device
+        month_doc["totalJoules"] = round(month_doc["totalJoules"], 2)
+        month_doc["totalKwh"] = round(month_doc["totalKwh"], 6)
+        month_doc["estimatedBill"] = round(month_doc["estimatedBill"], 2)
+        month_list.append(month_doc)
+
+    recent_events = sorted(recent_events, key=lambda item: float(item.get("timestamp", 0) or 0), reverse=True)[:20]
+    current_month = time.strftime("%Y-%m")
+    current_summary = months.get(
+        current_month,
+        {
+            "month": current_month,
+            "label": current_month,
+            "totalJoules": 0.0,
+            "totalKwh": 0.0,
+            "estimatedBill": 0.0,
+            "sessions": 0,
+            "devices": [],
+            "topDevice": None,
+        },
+    )
+
+    return {
+        "currentMonth": {
+            **current_summary,
+            "totalJoules": round(float(current_summary.get("totalJoules", 0) or 0), 2),
+            "totalKwh": round(float(current_summary.get("totalKwh", 0) or 0), 6),
+            "estimatedBill": round(float(current_summary.get("estimatedBill", 0) or 0), 2),
+        },
+        "months": month_list,
+        "recentEvents": recent_events,
+        "openSessions": list(history_doc.get("openSessions", {}).values()),
+    }
 
 
 def is_setup_complete(setup_doc):
@@ -1120,6 +1366,7 @@ def evaluate_and_dispatch(setup_doc):
         if result.get("ok"):
             with RUNTIME_LOCK:
                 RUNTIME_STATE["deviceState"][dev_id] = desired_on
+            record_energy_transition(dev, desired_on, time.time())
             actions.append({"deviceId": dev_id, "state": "ON" if desired_on else "OFF", "ok": True})
         else:
             actions.append({"deviceId": dev_id, "state": "ON" if desired_on else "OFF", "ok": False, "error": result.get("error")})
@@ -1387,8 +1634,7 @@ def put_setup():
     normalized_devices = []
     for dev in setup_doc["devices"]:
         normalized = dict(dev)
-        if not isinstance(normalized.get("meta"), dict):
-            normalized["meta"] = {}
+        normalized["meta"] = normalize_device_meta(normalized.get("meta"))
         normalized_devices.append(normalized)
 
     control = merge_control(setup_doc.get("control"))
@@ -1495,14 +1741,34 @@ def control_occupancy_event():
 @require_auth
 def control_runtime():
     with RUNTIME_LOCK:
+        with ENERGY_HISTORY_LOCK:
+            energy_history = load_energy_history()
         return jsonify(
             {
                 "zoneState": RUNTIME_STATE["zoneState"],
                 "deviceState": RUNTIME_STATE["deviceState"],
                 "mqttConnected": RUNTIME_STATE["mqttConnected"],
                 "dispatchLog": RUNTIME_STATE["dispatchLog"][-30:],
+                "activeEnergySessions": list(energy_history.get("openSessions", {}).values()),
             }
         ), 200
+
+
+@app.route("/api/energy/monthly", methods=["GET"])
+@require_auth
+def energy_monthly():
+    try:
+        rate_per_kwh = float(request.args.get("ratePerKwh", "0.15"))
+    except Exception:
+        rate_per_kwh = 0.15
+
+    with ENERGY_HISTORY_LOCK:
+        history = load_energy_history()
+        payload = aggregate_energy_history(history, rate_per_kwh=rate_per_kwh)
+
+    payload["ratePerKwh"] = round(rate_per_kwh, 4)
+    payload["currencyLabel"] = "estimate"
+    return jsonify(payload), 200
 
 
 @app.route("/api/devices/discovered", methods=["GET"])
@@ -1535,13 +1801,16 @@ def get_discovered_cameras():
 
 @app.route("/api/camera/video-feed", methods=["GET"])
 def camera_video_feed():
+    if cv2 is None or run_stream_processor is None:
+        return jsonify({"error": "Camera streaming dependencies are unavailable in this environment"}), 503
     ensure_stream_runtime_started()
     return Response(generate_mjpeg_stream(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 @app.route("/api/camera/zone-status", methods=["GET"])
 def camera_zone_status():
-    ensure_stream_runtime_started()
+    if cv2 is not None and run_stream_processor is not None:
+        ensure_stream_runtime_started()
 
     with STREAM_LOCK:
         zone_status = dict(STREAM_STATE.get("zoneStatus", {}))
@@ -1584,16 +1853,17 @@ def update_camera_config():
         save_camera_config(payload)
         
         # Update ecoeye_framed_yolo module globals
-        ecoeye_framed_yolo.CAMERA_COUNT = payload.get("cameraCount", 2)
-        ecoeye_framed_yolo.CAMERA_SOURCES = payload.get("cameraSources", [])
-        ecoeye_framed_yolo.SLOT_SECONDS = float(payload.get("slotSeconds", 1.0))
-        ecoeye_framed_yolo.TILE_WIDTH = int(payload.get("tileWidth", 480))
-        ecoeye_framed_yolo.TILE_HEIGHT = int(payload.get("tileHeight", 270))
-        ecoeye_framed_yolo.DECISION_INTERVAL_SEC = float(payload.get("decisionIntervalSec", 1.0))
-        ecoeye_framed_yolo.CONFIDENCE_THRESHOLD = float(payload.get("confidenceThreshold", 0.4))
-        
-        # Restart stream processor with new config
-        restart_stream_processor()
+        if ecoeye_framed_yolo is not None:
+            ecoeye_framed_yolo.CAMERA_COUNT = payload.get("cameraCount", 2)
+            ecoeye_framed_yolo.CAMERA_SOURCES = payload.get("cameraSources", [])
+            ecoeye_framed_yolo.SLOT_SECONDS = float(payload.get("slotSeconds", 1.0))
+            ecoeye_framed_yolo.TILE_WIDTH = int(payload.get("tileWidth", 480))
+            ecoeye_framed_yolo.TILE_HEIGHT = int(payload.get("tileHeight", 270))
+            ecoeye_framed_yolo.DECISION_INTERVAL_SEC = float(payload.get("decisionIntervalSec", 1.0))
+            ecoeye_framed_yolo.CONFIDENCE_THRESHOLD = float(payload.get("confidenceThreshold", 0.4))
+            
+            # Restart stream processor with new config
+            restart_stream_processor()
         
         return jsonify({
             "success": True,

@@ -52,6 +52,12 @@ It provides a secure admin web app to configure cameras, define left/right occup
   - device state
   - dispatch log
 
+### Energy Tracking
+- Monthly energy dashboard for control cycles captured by EcoEYE
+- Device wattage stored in setup metadata and used for joule calculation
+- Energy is computed from ON-to-OFF runtime as watts × seconds
+- Monthly totals are exposed through the control API for bill estimation
+
 ### Occupancy Logic Compatibility
 - Matches prototype strategy from test scripts:
   - Bottom-center person point concept
@@ -258,7 +264,8 @@ For each actuator:
 3. Set target:
    - MQTT topic example: `esp32/room1/light1/cmd`
    - HTTP endpoint example: `http://192.168.4.10/control`
-4. Set command payloads:
+4. Set the device wattage in Initial Setup so monthly energy usage can be estimated correctly.
+5. Set command payloads:
 
 Light/switch ON:
 

@@ -52,7 +52,7 @@ function newDevice(index) {
     target: 'esp32/device/topic',
     onCommand: 'ON',
     offCommand: 'OFF',
-    meta: {},
+    meta: { wattageW: 0 },
   }
 }
 
@@ -130,6 +130,18 @@ export default function InitialSetup({ token, onSetupCompleted }) {
     setSetup((prev) => ({
       ...prev,
       devices: prev.devices.map((dev) => (dev.id === deviceId ? { ...dev, [key]: value } : dev)),
+    }))
+    setSaved(false)
+  }
+
+  const updateDeviceMetaField = (deviceId, key, value) => {
+    setSetup((prev) => ({
+      ...prev,
+      devices: prev.devices.map((dev) => (
+        dev.id === deviceId
+          ? { ...dev, meta: { ...(dev.meta || {}), [key]: value } }
+          : dev
+      )),
     }))
     setSaved(false)
   }
@@ -379,7 +391,18 @@ export default function InitialSetup({ token, onSetupCompleted }) {
                 </label>
               </div>
 
-              <div className="setup-grid setup-grid--2">
+              <div className="setup-grid setup-grid--3">
+                <label className="setting-field">
+                  <span>Wattage (W)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={Number(dev.meta?.wattageW ?? 0)}
+                    onChange={(e) => updateDeviceMetaField(dev.id, 'wattageW', Number(e.target.value))}
+                    placeholder="Device power draw in watts"
+                  />
+                </label>
                 <label className="setting-field">
                   <span>ON Command (supports AC mode/temp payload)</span>
                   <input value={dev.onCommand} onChange={(e) => updateDeviceField(dev.id, 'onCommand', e.target.value)} placeholder='ON or {"power":"on","mode":"cool","temp":24}' />

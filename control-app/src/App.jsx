@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Zones from './pages/Zones'
 import InitialSetup from './pages/InitialSetup'
 import Analytics from './pages/Analytics'
+import EnergyDashboard from './pages/EnergyDashboard'
 import AIPredictions from './pages/AIPredictions'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
@@ -100,6 +101,7 @@ function App() {
             <Route path="/setup" element={<InitialSetup token={token} onSetupCompleted={() => setSetupCompleted(true)} />} />
             <Route path="/zones" element={<Zones />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/energy-dashboard" element={<EnergyDashboard />} />
             <Route path="/predictions" element={<AIPredictions />} />
             <Route path="/settings" element={<Settings token={token} />} />
             <Route path="/camera-feeds" element={<CameraFeeds />} />

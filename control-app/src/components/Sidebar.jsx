@@ -4,6 +4,7 @@ import {
     LayoutDashboard,
     Grid3X3,
     BarChart3,
+    Zap,
     Settings,
     Eye,
     Menu,
@@ -18,6 +19,7 @@ import './Sidebar.css'
 
 const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/energy-dashboard', label: 'Energy Dashboard', icon: Zap },
     { path: '/setup', label: 'Initial Setup', icon: SlidersHorizontal },
     { path: '/zones', label: 'Zones', icon: Grid3X3 },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
