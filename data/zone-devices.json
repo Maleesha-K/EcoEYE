@@ -1,4 +1,8 @@
 {
-  "cam1:bottom_left": [],
-  "cam1:full": []
+  "cam1:bottom_left": [
+    "192.168.1.106"
+  ],
+  "cam1:full": [
+    "192.168.1.106"
+  ]
 }
