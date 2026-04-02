@@ -5,7 +5,7 @@
   ],
   "confidenceThreshold": 0.4,
   "decisionIntervalSec": 1,
-  "slotSeconds": 1,
+  "slotSeconds": 10,
   "tileHeight": 270,
   "tileWidth": 480,
   "zoneCounts": [
